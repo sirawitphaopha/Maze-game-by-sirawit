@@ -17,7 +17,8 @@ export default function Phr({ children }: { children: string }) {
       {parts.map((p, i) => (
         <Fragment key={i}>
           {i > 0 && " "}
-          <span className="ph">{p}</span>
+          {/* data-notr ตัวแปลไม่แปลทีละวลีตอนสลับเป็นอังกฤษ รอ Phr วาดใหม่ทั้งประโยค (เดิมคำละวลีไปรกรายการคำที่ขาด docs/BUGHUNT-2026-10-21.md ข้อ 31) */}
+          <span className="ph" data-notr="">{p}</span>
         </Fragment>
       ))}
     </>

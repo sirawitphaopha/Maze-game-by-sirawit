@@ -15,6 +15,8 @@ import { distFrom, openNb } from "../maze/grid.ts";
       เดิมหลงแล้วตัดกลับเข้าทางเฉลยช่วงหลัง ผลรวมที่มาของก้าวเกินไม่เท่าก้าวเกินจริง
       โหมดไม่มีทางวน onBest = เส้นเฉลยพอดี และ nearest เดินคู่กับจุดไกลสุดเดิม ตัวเลขทุกตัวเท่าเดิม (มีชุดทดสอบเทียบ)
    ③ นาฬิกาหยุดได้ (pause/resume) ช่วงที่หยุดไม่นับเวลา และไม่นับในบันทึกการเดิน
+   ④ เส้นทางเก็บเป็นปมต่อกัน (tc tp tip) ปักธงจำแค่ปมปลาย วาร์ปย้ายปมปลายกลับ ไม่ต้องคัดลอกทั้งเส้น
+      เดิมปักธงทุกครั้งคัดลอกเส้นทางทั้งเส้น บันทึกปลอมที่เดินวนแล้วปักธงซ้ำทำให้เซิร์ฟเวอร์คิดนาน 7.8 วินาที (docs/BUGHUNT-2026-10-21.md ข้อ 20)
    ════════════════════════════════════════════════════════════════════ */
 
 export type Dir = "u" | "d" | "l" | "r";
@@ -43,12 +45,20 @@ export interface Game {
   /** ทางแยกที่ต้องตัดสินใจบนทางเฉลย */
   D: number;
   pos: number;
-  trail: number[];
+  /** เส้นทางที่ผ่านมา เรียงจากทางเข้าถึงตำแหน่งปัจจุบัน (คิดจากปมทุกครั้งที่อ่าน) */
+  readonly trail: number[];
+  /** ช่องของแต่ละปมในเส้นทาง */
+  tc: number[];
+  /** ปมก่อนหน้าของแต่ละปม (-1 = ปมแรก) */
+  tp: number[];
+  /** ปมปลายของเส้นทางตอนนี้ */
+  tip: number;
   seen: Uint8Array;
   steps: number;
   status: GameStatus;
   flag: number;
-  flagTrail: number[] | null;
+  /** ปมปลายของเส้นทางตอนปักธง (-1 = ยังไม่ปัก) */
+  flagTip: number;
   wrong: number;
   lost: number;
   back: number;
@@ -67,6 +77,13 @@ export interface Game {
 
 const STEP: Record<Dir, (n: number) => number> = { r: () => 1, l: () => -1, d: (n) => n, u: (n) => -n };
 
+/** เส้นทางจากทางเข้าถึงปมปลาย */
+export function trailOf(G: Pick<Game, "tc" | "tp" | "tip">): number[] {
+  const out: number[] = [];
+  for (let i = G.tip; i >= 0; i = G.tp[i]) out.push(G.tc[i]);
+  return out.reverse();
+}
+
 export function newGame(settings: Settings, maze: MazeData): Game {
   const { n, R, B } = maze, s = n >> 1, e = n * (n - 1) + maze.ex;
   const path = solveTo(maze);
@@ -81,7 +98,8 @@ export function newGame(settings: Settings, maze: MazeData): Game {
   seen[s] = 1;
   return {
     settings, maze, n, R, B, s, e, path, onPath, onBest, de, L, D,
-    pos: s, trail: [s], seen, steps: 0, status: "ready", flag: -1, flagTrail: null,
+    pos: s, tc: [s], tp: [-1], tip: 0, seen, steps: 0, status: "ready", flag: -1, flagTip: -1,
+    get trail() { return trailOf(this); },
     wrong: 0, lost: 0, back: 0, rewalk: 0, warp: 0, nearest: L, wrongAt: [],
     t0: 0, pausedAt: null, pausedTotal: 0, el: 0, events: [],
   };
@@ -131,9 +149,9 @@ export function move(G: Game, d: Dir, now: number): MoveResult {
   if (G.status === "ready") { G.status = "play"; G.t0 = now; }
   resume(G, now);
   G.events.push({ t: Math.round(clock(G, now)), k: d });
-  const tr = G.trail, back = tr.length > 1 && tr[tr.length - 2] === b;
-  if (back) tr.pop();
-  else tr.push(b);
+  const up = G.tp[G.tip], back = up >= 0 && G.tc[up] === b;
+  if (back) G.tip = up;
+  else { G.tc.push(b); G.tp.push(G.tip); G.tip = G.tc.length - 1; }
   G.pos = b;
   G.seen[b] = 1;
   G.steps++;
@@ -146,7 +164,7 @@ export function move(G: Game, d: Dir, now: number): MoveResult {
 export function setFlag(G: Game, now: number): boolean {
   if (!playing(G)) return false;
   G.flag = G.pos;
-  G.flagTrail = G.trail.slice();
+  G.flagTip = G.tip;
   G.events.push({ t: Math.round(clock(G, now)), k: "F" });
   return true;
 }
@@ -159,7 +177,7 @@ export function backToFlag(G: Game, now: number): "noflag" | "same" | "ok" | "of
   resume(G, now);
   G.warp++;
   G.pos = G.flag;
-  G.trail = (G.flagTrail as number[]).slice();
+  G.tip = G.flagTip;
   G.events.push({ t: Math.round(clock(G, now)), k: "W" });
   return "ok";
 }
@@ -212,16 +230,22 @@ export function flagSpots(settings: Settings, maze: MazeData, events: GameEvent[
 
 export function replay(settings: Settings, maze: MazeData, events: GameEvent[], k = events.length): Game {
   const G = newGame(settings, maze);
+  replayStep(G, events, 0, k);
+  return G;
+}
+
+/** เล่นต่อบนเกมเดิม จากเหตุการณ์ที่ from ถึงก่อน to · ตัวดูย้อนเดินทีละก้าวไม่ต้องเล่นจากต้นทุกครั้ง
+    (เดิมเล่นซ้ำจากต้นทุกก้าว เกมยิ่งยาวยิ่งช้า docs/BUGHUNT-2026-10-21.md ข้อ 25) */
+export function replayStep(G: Game, events: GameEvent[], from: number, to: number): void {
   const T0 = 1_000_000;
-  for (let i = 0; i < k && i < events.length; i++) {
+  for (let i = from; i < to && i < events.length; i++) {
     const ev = events[i], now = T0 + ev.t;
     if (ev.k === "F") setFlag(G, now);
     else if (ev.k === "W") backToFlag(G, now);
     else move(G, ev.k, now);
   }
-  if (G.status === "play" && k < events.length) {
+  if (G.status === "play" && to < events.length) {
     // ยังไม่จบ ตรึงนาฬิกาไว้ที่เหตุการณ์ล่าสุด
-    G.el = k > 0 ? events[k - 1].t : 0;
+    G.el = to > 0 ? events[to - 1].t : 0;
   }
-  return G;
 }

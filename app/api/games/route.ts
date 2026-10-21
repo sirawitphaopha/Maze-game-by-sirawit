@@ -23,7 +23,10 @@ export async function POST(req: Request) {
   if (nodb) return nodb;
   try {
     const db = supabaseAdmin();
-    const ins = await db.from(TABLES.games).upsert(g.row, { onConflict: "save_key", ignoreDuplicates: true }).select("id");
+    let ins = await db.from(TABLES.games).upsert(g.row, { onConflict: "save_key", ignoreDuplicates: true }).select("id");
+    // เกมต้นทาง (replay_of) ไม่มีในฐาน ติดกุญแจนอก (23503) · บันทึกเกมนี้ต่อโดยไม่ผูกเกมต้นทาง ดีกว่าทิ้งเกมที่เล่นจบ
+    // เดิมตอบ 500 แล้วหน้าเว็บส่งซ้ำไปเรื่อย ๆ (docs/BUGHUNT-2026-10-21.md ข้อ 12)
+    if (ins.error?.code === "23503" && g.row.replay_of) ins = await db.from(TABLES.games).upsert({ ...g.row, replay_of: null }, { onConflict: "save_key", ignoreDuplicates: true }).select("id");
     if (ins.error) return dbFail("insert", ins.error.message, "ฐานข้อมูลไม่รับข้อมูล ลองใหม่ภายหลัง");
     if (ins.data && ins.data.length > 0) return NextResponse.json({ ok: true, id: ins.data[0].id, duplicate: false });
     // รหัสก้อนนี้เคยบันทึกแล้ว ตอบรหัสแถวเดิม

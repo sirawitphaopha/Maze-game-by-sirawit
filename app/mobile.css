@@ -60,7 +60,7 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 @media (max-width: 759px) {
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   html, body, body * { touch-action: pan-y !important; }
-  .board, .dpad, .dpad * { touch-action: none !important; }
+  .board.live, .dpad, .dpad * { touch-action: none !important; }
   .tablewrap, .tablewrap *, .paperscroll, .paperscroll * { touch-action: pan-x pan-y !important; }
 }
 
@@ -80,3 +80,202 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 /* ปุ่มสลับภาษาอยู่ชิดขวาแถวแรกคู่กับปุ่มสลับโหมด */
 .mz-mobile .whorow .langbtn { order: 2; margin-left: auto; }
 .mz-mobile .whorow .langbtn ~ .themebtn { margin-left: 0; }
+
+/* ════════ มือถือเน้นเล่นเกม (พี่กันสั่ง 21 ต.ค. 2569 ดึก "มอถือคือเน้นเล่นเกมจริง ๆ" · "การแก้นี้ มือถือเท่านั้น") ════════ */
+
+/* แถบบนแถวเดียว · คำอธิบายเว็บเอาออก · แท็บกับปุ่มออกจากระบบย้ายเข้าปุ่มเลือกแท็บข้างปุ่มภาษากับปุ่มโหมด */
+.mz-mobile .brand p, .mz-mobile .appbar-in > .tabs, .mz-mobile .whorow .out, .mz-mobile .who > .outwhy { display: none; }
+.mz-mobile .whorow .mmenu[hidden] { display: inline-flex !important; order: 2; }
+.mz-mobile .mmenu[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); border-color: var(--accent); color: var(--accent); }
+.mz-mobile .mmenu-list { position: absolute; top: calc(100% + 6px); right: 12px; z-index: 45; min-width: 220px; display: flex; flex-direction: column; padding: 6px; background: var(--surface); border: 1px solid var(--line-hover); border-radius: 14px; box-shadow: 0 18px 40px -14px rgba(0, 0, 0, .45); animation: mz-menu-in .16s ease-out both; }
+.mz-mobile .mmenu-list .mitem { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 14px; border: 0; border-radius: 10px; background: none; font: inherit; font-size: 16px; color: var(--ink); text-align: left; text-decoration: none; }
+.mz-mobile .mmenu-list .mitem[aria-current="page"] { color: var(--accent); font-weight: 600; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.mz-mobile .mmenu-list .mout { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; color: var(--muted); }
+.mz-mobile .mmenu-list .mout:disabled { opacity: .55; }
+.mz-mobile .mmenu-list .mwhy { padding: 2px 14px 8px; font-size: 12px; color: var(--muted); }
+@keyframes mz-menu-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mz-mobile .mmenu-list { animation: none; } }
+
+/* หน้าเล่นเกม ตัวเลขการ์ดเดียวแถวเดียว มีแค่เวลากับก้าว (สถิติดีสุดอยู่ในแผ่นตั้งค่าด่าน) · ไม่มีข้อความ ไม่เว้นบรรทัด */
+.mz-mobile .playpage .hud { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.mz-mobile .playpage .hud > div { flex: 1 1 0; display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 7px 10px; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.mz-mobile .playpage .hud > div + div { border-left: 1px solid var(--line); }
+.mz-mobile .playpage .hud > div::after { display: none; }
+.mz-mobile .playpage .hud > div:nth-child(3) { display: none; }
+.mz-mobile .playpage .hud .k { display: inline; font-size: 13px; }
+.mz-mobile .playpage .hud b { font-size: 19px; }
+.mz-mobile .playpage .status:empty { display: none; }
+
+/* กระดานกับปุ่มเดินอยู่ในจอเดียว (พี่กันสั่ง "ตอนที่เปิดเว็บ ปุ่มมันตก") · กระดานกว้างเต็มจอ แต่ย่อลงถ้าความสูงจอไม่พอ
+   --mz-rest = ความสูงของทุกอย่างใต้แถบบนที่ไม่ใช่กระดาน (การ์ดตัวเลข ปุ่มเดิน แถวปักธง ปุ่มแผ่น ระยะห่าง ขอบล่างของ iPhone) */
+.mz-mobile .playpage { --mz-rest: calc(394px + env(safe-area-inset-bottom, 0px)); }
+.mz-mobile .playpage .pg-board canvas, .mz-mobile .playpage .boardskel { width: min(100%, calc(100dvh - var(--bar-h, 56px) - var(--mz-rest))); margin-inline: auto; }
+.mz-mobile .playpage .dpad { grid-template-rows: repeat(3, 52px); gap: 6px; }
+.mz-mobile .playpage .fbtn { min-height: 44px; }
+
+/* ปุ่มเริ่มเกมทับวงกต (พี่กันสั่ง "ถ้ายังไม่กดเริ่มเกม เราจะสัมผัสอะไร ... เราจะทำไม่ได้") · มองเห็นวงกตจาง ๆ ข้างหลัง แตะแล้วเลื่อนหน้าได้ */
+.mz-mobile .startcover[hidden] { display: flex !important; }
+.mz-mobile .startcover { position: absolute; inset: 0; z-index: 3; align-items: center; justify-content: center; border-radius: 8px; background: color-mix(in srgb, var(--surface) 42%, transparent); }
+.mz-mobile .startcover .btn { flex: none; width: auto; min-height: 58px; padding-inline: 36px; border-radius: 16px; font-size: 19px; gap: 10px; box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent); }
+
+/* แผ่นตั้งค่าด่านกับวิธีเล่น เลื่อนขึ้นจากขอบล่าง (พี่กันสั่ง "ทำเป็นปุ่มกดดู จะไม่อยู่หน้าเล่นเกม") · ปุ่มพิมพ์ใบงานไม่มีบนมือถือ */
+.mz-mobile .playpage .pg-set, .mz-mobile .playpage .pg-ctrl > .keyhelp, .mz-mobile .printbtn { display: none; }
+.mz-mobile .playpage[data-sheet="set"] .pg-set {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 85; max-height: 86dvh; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0; padding: 0 16px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--surface);
+  border: 1px solid var(--line-hover); border-bottom: 0; border-radius: 20px 20px 0 0; box-shadow: 0 -18px 40px -16px rgba(0, 0, 0, .45);
+  animation: mz-sheet-up .42s cubic-bezier(.16, 1.16, .3, 1) both;
+}
+.mz-mobile .playpage[data-sheet="set"] .pg-set { display: flex; justify-content: flex-start; }
+.mz-mobile .playpage[data-sheet] .msheet-top[hidden] { display: flex !important; }
+.mz-mobile .msheet-top { position: sticky; top: 0; z-index: 2; align-items: center; justify-content: space-between; gap: 8px; margin: 0 -16px; padding: 12px 12px 8px 16px; background: var(--surface); }
+.mz-mobile .msheet-top b { font-size: 17px; color: var(--ink); }
+/* หัวข้อเดิมของแผงตั้งค่าซ้ำกับหัวแผ่น ซ่อนตอนเป็นแผ่น */
+.mz-mobile .playpage[data-sheet="set"] .pg-set > .psech { display: none; }
+.mz-mobile .pg-set .mbest[hidden] { display: block !important; }
+.mz-mobile .pg-set .mbest { margin: 0; font-size: 14px; color: var(--muted); }
+.mz-mobile .pg-set .mbest b { font-family: var(--f-mono); color: var(--ink); }
+.mz-mobile .msheet-back { position: fixed; inset: 0; z-index: 84; background: rgba(6, 20, 26, .45); animation: mz-fade-in .2s ease-out both; }
+@keyframes mz-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mz-mobile .playpage[data-sheet] .pg-set, .mz-mobile .msheet-back { animation: none; } }
+
+/* ก่อนกดเริ่มเกม และหลังจบเกม แตะวงกตหรือปุ่มเดินแล้วเลื่อนหน้าได้ (พี่กันสั่ง "เอานิ้วไปจับที่วงกต เราเลื่อนขึ้นลงไม่ได้เลย")
+   ต้องอยู่ในเงื่อนไขความกว้างเดียวกับกฎห้ามเลื่อนด้านบน */
+@media (max-width: 759px) {
+  .board.live.scroll, .playpage.locked .dpad, .playpage.locked .dpad * { touch-action: pan-y !important; }
+}
+
+/* ห้องทดลอง แถบปรับขึ้นก่อน กราฟเทียบไว้ล่างสุด (พี่กันสั่ง "เอากราฟไปไว้ล่างสุด เอาแถบปรับขึ้นมาอยู่ก่อน")
+   กล่องข้างกระดานใช้ display: contents ลูกข้างในเรียงลำดับใหม่ได้ · ลำดับ กระดาน การ์ดชื่อวิธี สถิติ แถบปรับ กราฟ */
+.mz-mobile .lab > .side { display: contents; }
+.mz-mobile .lab > .lstage { order: 0; }
+.mz-mobile .side > .sidecard { order: 1; }
+.mz-mobile .side > .stats { order: 2; }
+.mz-mobile .side > .pick { order: 3; }
+.mz-mobile .lab > .panel { order: 4; }
+.mz-mobile .side > .compare { order: 5; }
+.mz-mobile .side > .sidecard, .mz-mobile .side > .compare { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+
+/* ป๊อปอธิบายกลุ่มวิธีสร้าง (ห้องทดลอง) ขึ้นกลางจอเสมอ ไม่ว่าแตะจากตรงไหน (พี่กันทัก 21 ต.ค. 2569 "เปิดอันล่างสุด popup โดนตัดขอบ" · "มันควรอยู่กลางจอไหม")
+   ตำแหน่งที่คำนวณจากหัวข้อเขียนเป็น style ในตัว จึงต้องทับด้วย !important · ยาวเกินจอเลื่อนในป๊อปได้ */
+.mz-mobile .ginfo { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); width: min(340px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .6); }
+
+/* แถบบนต้องจบในแถวเดียว ปุ่มเลือกแท็บไม่ตกลงแถวสอง · ชื่อเว็บกับเลขรุ่นย่อลงเล็กน้อย (จอ 390 เหลือที่ 358 จุด) */
+.mz-mobile .appbar-in { gap: 6px; }
+.mz-mobile .brand h1 { font-size: 17.5px; }
+.mz-mobile .brand .ver { font-size: 11px; padding: 2px 6px; }
+
+/* แถบสถานะของ iPhone โปร่งใส (app/layout.tsx statusBarStyle black-translucent) สีแถบบนลากขึ้นไปถึงขอบบน
+   กันที่ด้วยขอบในของแถบบน ไม่ใช่ดันทั้งแถบลง (สกิล mobile-web-app) · เปิดในเบราว์เซอร์ปกติค่านี้เป็นศูนย์ ไม่มีผล */
+.mz-mobile .appbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
+
+/* หน้าประวัติ มุมมองตาราง เปลี่ยนเป็นการ์ดทีละเกม แบบเว็บ DRP (พี่กันสั่ง 21 ต.ค. 2569 "ตาราง ออกแบบใหม่ ไปดูตัวอย่างพวกเว็บ drp ยาคืน")
+   แตะได้ทั้งใบ ไม่ตัดข้อมูลทิ้งสักช่อง ยุบมารวมบรรทัด ป้ายหัวคอลัมน์มาจาก data-label (ตัวแปลภาษาแปลให้)
+   ไม่ต้องเลื่อนข้างแล้ว แถบเลื่อนซ้ายขวาที่ลอยอยู่ใต้ตารางจึงหายไปด้วย (พี่กันทัก "แถบเลื่อนซ้ายขวาของตารางมันลอย") */
+.mz-mobile .histpage .tablewrap { overflow: visible; }
+.mz-mobile table.games { display: block; font-size: 14px; }
+.mz-mobile table.games thead { display: none; }
+.mz-mobile table.games tbody { display: flex; flex-direction: column; gap: 10px; }
+.mz-mobile table.games tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "at rep go" "score score score" "lv lv time" "algo algo steps" "opt opt wrong"; gap: 7px 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.mz-mobile table.games td { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0; border: 0; white-space: normal; text-align: left; }
+.mz-mobile table.games td.num { justify-content: flex-end; text-align: right; }
+.mz-mobile table.games td:nth-child(1) { grid-area: at; font-weight: 600; }
+.mz-mobile table.games td:nth-child(2) { grid-area: score; }
+.mz-mobile table.games td:nth-child(3) { grid-area: lv; }
+.mz-mobile table.games td:nth-child(4) { grid-area: algo; }
+.mz-mobile table.games td:nth-child(5) { grid-area: opt; }
+.mz-mobile table.games td:nth-child(6) { grid-area: time; }
+.mz-mobile table.games td:nth-child(7) { grid-area: steps; }
+.mz-mobile table.games td:nth-child(8) { grid-area: wrong; }
+.mz-mobile table.games td:nth-child(9) { grid-area: rep; }
+.mz-mobile table.games td:nth-child(10) { grid-area: go; justify-content: flex-end; }
+.mz-mobile table.games td:is(:nth-child(4), :nth-child(5), :nth-child(6), :nth-child(7), :nth-child(8))[data-label]::before { content: attr(data-label); font-family: var(--f-body, inherit); font-size: 12px; color: var(--muted); }
+.mz-mobile table.games td:nth-child(2) .scpill { width: 100%; }
+.mz-mobile table.games td:nth-child(2) .scpill i { flex: 1 1 auto; width: auto; height: 7px; }
+.mz-mobile table.games .gocell .go { display: none; }
+.mz-mobile table.games .skel { max-width: 100%; }
+
+/* หน้าดูย้อน วงกตบนสุด แล้วปุ่มเล่นกับเวลา การ์ดผล ข้อมูลเกมล่างสุดย่อเป็นสองคอลัมน์
+   (พี่กันสั่ง 21 ต.ค. 2569 "วงกตควรอยู่บนสุด ลองลงมาคือปุ่มเวลา ข้อมูลเกมล่างสุด (และบีบให้ย่อด้วย)") */
+.mz-mobile .rplay > .rleft { display: contents; }
+.mz-mobile .rplay > .pg-board { order: 0; }
+.mz-mobile .rleft > .rtop { order: 1; }
+.mz-mobile .rplay > .rright { order: 2; }
+.mz-mobile .rleft > .rinfo { order: 3; }
+.mz-mobile .rtop .hud { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.mz-mobile .rtop .hud > div { flex: 1 1 0; display: flex; align-items: baseline; justify-content: center; gap: 6px; padding: 7px 8px; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.mz-mobile .rtop .hud > div + div { border-left: 1px solid var(--line); }
+.mz-mobile .rtop .hud > div::after { display: none; }
+.mz-mobile .rtop .hud .k { display: inline; font-size: 12.5px; }
+.mz-mobile .rtop .hud b { font-size: 18px; }
+.mz-mobile .rinfo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px; padding: 12px 14px; }
+.mz-mobile .rinfo > .psech, .mz-mobile .rinfo > .foot { grid-column: 1 / -1; margin: 0; }
+.mz-mobile .rinfo .lbl { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; font-size: 11.5px; }
+.mz-mobile .rinfo .lbl b { font-size: 14px; color: var(--ink); text-align: left; }
+/* จอแคบมาก (เช่น 360) ไม่พอให้ชื่อเว็บ เลขรุ่น และสามปุ่มอยู่แถวเดียว ซ่อนเลขรุ่น (ยังมีในหน้าคอมและจอ 380 ขึ้นไป) */
+@media (max-width: 379px) { .mz-mobile .brand .ver { display: none; } }
+/* หน้าดูย้อนมีปุ่มกลับหน้าประวัติหน้าชื่อเว็บ ที่ไม่พอ ซ่อนเลขรุ่น */
+.mz-mobile .brand .backslot.on ~ .ver { display: none; }
+
+/* แถบบอกผล (บันทึกเกมเข้าระบบแล้ว ฯลฯ) บรรทัดเดียว (พี่กันสั่ง 21 ต.ค. 2569 "ปุ่มบันทึกเข้าระบบ ต้อง 1 บรรทัด")
+   เดิมจัดกลางด้วย left 50% ความกว้างจึงถูกจำกัดแค่ครึ่งจอ ข้อความตัดสองบรรทัด · กว้างตามข้อความ ไม่เกินจอ · เผื่อขอบล่างของ iPhone */
+.mz-mobile .banner { width: max-content; max-width: calc(100vw - 32px); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+
+/* ก่อนกดเริ่มเกม วงกตเบลอ ปุ่มเริ่มเกมอยู่กลาง (พี่กันสั่ง 21 ต.ค. 2569 "ปุ่มเริ่มเกม ให้มันบังกลางงั้นเลย และเบลอวงกตด้วย ทำเฉพาะโมบาย")
+   เบลอที่ตัววงกตเอง (filter) ไม่ใช้ backdrop-filter ที่ฉากบัง · คลาส locked มีเฉพาะมือถือตอนยังไม่กดเริ่ม */
+.mz-mobile .playpage.locked .pg-board canvas.board { filter: blur(5px); }
+
+/* แถวปุ่มธง ปักธง กลับธง พัก ตั้งค่า แถวเดียว (พี่กันสั่ง 21 ต.ค. 2569 "คำว่า กลับไปที่ธง เหลือ กลับธง · พักเกม เหลือพัก")
+   ชื่อเต็มกับชื่อสั้นอยู่ในปุ่มทั้งคู่ จอคอมเห็นชื่อเต็ม มือถือเห็นชื่อสั้น · ปุ่มตั้งค่าเปิดแผ่นตั้งค่าด่านที่มีวิธีเล่นอยู่ข้างใน */
+.mz-mobile .lfull { display: none; }
+.mz-mobile .lshort[hidden] { display: inline !important; }
+.mz-mobile .playpage .flagrow { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mz-mobile .playpage .msetbtn[hidden] { display: inline-flex !important; }
+.mz-mobile .playpage .fbtn { min-height: 48px; padding-inline: 4px; gap: 5px; font-size: 14.5px; }
+.mz-mobile .pg-set .mhelp[hidden] { display: flex !important; flex-direction: column; gap: 8px; }
+.mz-mobile .pg-set .mhelp .keyhelp { gap: 8px 14px; font-size: 14px; }
+
+/* ปุ่มลูกศรเป็นสี่เหลี่ยมจัตุรัสเท่ากันทุกปุ่ม ใหญ่พอกับนิ้ว (พี่กันสั่ง "ขยายปุ่มกด เน้นปุ่มต้องสมมาตรใหญ่พอกับนิ้ว") */
+.mz-mobile .playpage .dpad { grid-template-columns: repeat(3, 76px); grid-template-rows: repeat(3, 76px); gap: 8px; width: auto; max-width: none; justify-content: center; }
+.mz-mobile .playpage .dbtn svg { width: 38px; height: 38px; }
+
+/* เวลากับก้าว ไม่มีกรอบ ขนาดเล็กลงราว 30% (พี่กันสั่ง 21 ต.ค. 2569 "เวลา กับ ก้าว ลองไม่เอากรอบ และลดขนาดอีก 30%") */
+.mz-mobile .playpage .hud { justify-content: center; gap: 28px; border: 0; border-radius: 0; background: none; }
+.mz-mobile .playpage .hud > div { flex: none; gap: 6px; padding: 2px 0; }
+.mz-mobile .playpage .hud > div + div { border-left: 0; }
+.mz-mobile .playpage .hud .k { font-size: 10.5px; }
+.mz-mobile .playpage .hud b { font-size: 13.5px; }
+
+/* ช่องติ๊กดูโครงจางค้างไว้ (เครื่องมือดูหน้าตาตอนรอ) ไม่มีบนมือถือ (พี่กันสั่ง 21 ต.ค. 2569 "เอาออก") */
+.mz-mobile .skeltoggle { display: none; }
+/* บรรทัด "ทั้งหมด n เกม เรียงจากล่าสุด กดแถวเพื่อดูย้อน" ซ้ำกับการ์ดเกมทั้งหมด ไม่มีบนมือถือ (พี่กันสั่ง "เอาออก ซ้ำซ้อน") */
+.mz-mobile .histhead .sub { display: none; }
+/* ปุ่มเลือกตารางกับภาพเขาวงกต อยู่แถวเดียวกับหัวข้อ "เกมที่เล่นจบ" (พี่กันสั่ง 21 ต.ค. 2569) ย่อปุ่มให้พอดีแถว */
+.mz-mobile .histhead { flex-wrap: nowrap; gap: 8px; }
+.mz-mobile .histhead > div:first-child { flex: 0 1 auto; min-width: 0; }
+.mz-mobile .histhead h2 { font-size: 20px; white-space: nowrap; }
+.mz-mobile .histhead > .histtools { flex: none; }
+.mz-mobile .seg.viewtog button { padding: 6px 10px; font-size: 13px; gap: 4px; }
+/* การ์ดสรุป 4 ใบอยู่แถวเดียว ย่อขนาด (พี่กันสั่ง 21 ต.ค. 2569 "ย่อการ์ด 4 อันนั้นอยู่ 1 แถว") */
+.mz-mobile .histsum { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mz-mobile .wrap .histsum .stat { padding: 6px 7px; border-left-width: 3px; }
+.mz-mobile .wrap .histsum .stat::after { width: 44px; height: 44px; right: -16px; top: -16px; }
+.mz-mobile .histsum .stat .k { font-size: 10.5px; line-height: 1.35; }
+.mz-mobile .histsum .stat .v { font-size: 17px; line-height: 1.25; }
+.mz-mobile .histsum .u { font-size: 10.5px; }
+/* เวลากับก้าวชิดวงกต (พี่กันสั่ง 21 ต.ค. 2569 "ลดระยะห่าง ชิดกว่านี้") ระยะระหว่างก้อนในหน้าเล่นเกมจาก 14 เหลือ 6 · ที่ได้คืนให้กระดาน (--mz-rest ลด 16) */
+.mz-mobile .playpage .play { gap: 6px; }
+
+/* วิธีเล่นแบบมือถือในแผ่นตั้งค่าด่าน กระชับ */
+.mz-mobile .pg-set .mhelp .keyhelp { grid-template-columns: 4.6em 1fr; gap: 6px 10px; font-size: 13.5px; line-height: 1.45; }
+
+/* ป้ายที่มาของเกม (พี่กันทัก 21 ต.ค. 2569 "ด่านใหม่คืออะไร เอาไปไว้จุดอื่น ไม่ให้มันอยู่ตัวเดียว 1 แถว")
+   ด่านใหม่คือแบบปกติ ไม่ต้องขึ้นป้าย · เกมที่เล่นด่านเดิมซ้ำขึ้นป้ายสั้น "เล่นซ้ำ" ในแถววันที่ */
+.mz-mobile table.games .srcpill:not(.re) { display: none; }
+.mz-mobile table.games td:nth-child(9) { justify-content: flex-end; }
+/* การ์ดประวัติ ทุกบรรทัดเริ่มตรงแนวเดียวกัน (เลขคะแนนเดิมจัดชิดขวาในช่อง 3 ตัวอักษร จึงเยื้องเข้ามา)
+   และขนาดตารางขึ้นก่อนป้ายระดับ (พี่กันสั่ง 21 ต.ค. 2569 "เรียงให้ตรงกัน · สลับ เอา 18 × 18 ขึ้นก่อน แล้วค่อยกลาง") */
+.mz-mobile table.games td:nth-child(2) .scpill b { min-width: 0; text-align: left; }
+.mz-mobile table.games td:nth-child(3) .lvpill { order: 2; }
+.mz-mobile table.games td:nth-child(3) .mut { order: 1; }
+.mz-mobile table.games td:nth-child(3) .mut { margin: 0; }

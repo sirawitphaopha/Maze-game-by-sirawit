@@ -33,9 +33,21 @@ export default function TopBar() {
   const items = useSyncExternalStore(subscribePending, pendingSnapshot, pendingServerSnapshot);
   const [busy, setBusy] = useState(false);
   const ro = useRef<ResizeObserver | null>(null);
+  // มือถือ แท็บกับปุ่มออกจากระบบอยู่ในรายการที่กางลงจากปุ่มเมนู (พี่กันสั่ง 21 ต.ค. 2569 "ย้ายไปที่อื่น เอาแบบปุ่มกดลงมาเลือก เพราะมันกินที่ มือถือคือเน้นเล่นเกมจริง ๆ")
+  const [menu, setMenu] = useState(false);
 
   // เปลี่ยนหน้าแล้วอยู่บนสุดเสมอ (new-web-checklist · web-craft 6.26)
   useEffect(() => { window.scrollTo(0, 0); }, [path]);
+
+  // รายการเมนูเปิดอยู่ แตะที่อื่นหรือกด Esc แล้วปิด
+  useEffect(() => {
+    if (!menu) return;
+    const onDown = (e: PointerEvent) => { if (!(e.target instanceof Element) || !e.target.closest(".mmenu, .mmenu-list")) setMenu(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("pointerdown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [menu]);
 
   // โหลดโค้ดของทุกแท็บรอไว้ตั้งแต่เปิดเว็บ กดเปลี่ยนแท็บแล้วขึ้นทันที ไม่มีจังหวะรอ (พี่กันสั่ง "ห้ามมีการโหลดแบบนี้ตอนเปลี่ยนแท็บ")
   useEffect(() => {
@@ -63,6 +75,12 @@ export default function TopBar() {
   if (path === "/login") return null;
   const blocked = items.length > 0;
   const onReplay = path.startsWith("/history/");
+  // กดแท็บระหว่างเล่นเกม ถามก่อนออก · ใช้ทั้งแท็บบนจอคอมและรายการเมนูบนมือถือ
+  const onTab = (e: React.MouseEvent<HTMLAnchorElement>, t: (typeof TABS)[number]) => {
+    if (e.detail > 0) e.currentTarget.blur();
+    setMenu(false);
+    if (path.startsWith("/play") && !t.match(path) && playMem.G?.status === "play") { e.preventDefault(); setLeaveTo(t.href); }
+  };
 
   const logout = async () => {
     if (blocked || busy) return;
@@ -100,10 +118,7 @@ export default function TopBar() {
           {TABS.map((t) => (
             // กดด้วยเมาส์แล้วปล่อยโฟกัสออกจากแท็บ ไม่งั้นกดลูกศรเล่นเกมต่อ เบราว์เซอร์วาดกรอบโฟกัสรอบแท็บ (พี่กันทัก "ปุ่มนี้มาทำใหม่ทำไม มันไม่สวย")
             // กดด้วยคีย์บอร์ด (detail เป็น 0) โฟกัสยังอยู่ กรอบยังขึ้นตามปกติ (สกิล web-craft ปุ่มต้องใช้คีย์บอร์ดได้)
-            <Link key={t.href} href={t.href} className="tab" aria-selected={t.match(path)} role="tab" onClick={(e) => {
-              if (e.detail > 0) e.currentTarget.blur();
-              if (path.startsWith("/play") && !t.match(path) && playMem.G?.status === "play") { e.preventDefault(); setLeaveTo(t.href); }
-            }}>
+            <Link key={t.href} href={t.href} className="tab" aria-current={t.match(path) ? "page" : undefined} onClick={(e) => onTab(e, t)}>
               {t.label}
             </Link>
           ))}
@@ -112,6 +127,10 @@ export default function TopBar() {
           <div className="whorow">
             <LangToggle />
             <ThemeToggle />
+            {/* ปุ่มเลือกแท็บ มือถือเท่านั้น · hidden ไว้ หน้าคอมไม่เห็นและไม่กินที่ app/mobile.css เปิดให้เห็นบนมือถือ */}
+            <button type="button" className="iconbtn mmenu" hidden aria-label="เลือกแท็บ" title="เลือกแท็บ" aria-haspopup="menu" aria-expanded={menu} aria-controls="mmenu-list" onClick={() => setMenu((m) => !m)}>
+              <Icon name={menu ? "x" : "menu"} size={18} />
+            </button>
             <button type="button" className="out" onClick={logout} disabled={blocked || busy}>
               {busy ? "กำลังออก" : "ออกจากระบบ"}
             </button>
@@ -127,6 +146,18 @@ export default function TopBar() {
             />
           )}
           {blocked && <div className="outwhy">ยังมีเกมรอส่ง {items.length} เกม ออกจากระบบไม่ได้จนกว่าจะส่งเข้าระบบครบ</div>}
+          {/* รายการที่กางลงจากปุ่มเลือกแท็บ (มือถือ) · เล่นเกมอยู่บนสุด (พี่กันสั่ง "ปุ่มเล่นเกมจะแสดงอย่างแรก") */}
+          {menu && (
+            <div className="mmenu-list" id="mmenu-list" role="menu" aria-label="เลือกแท็บ">
+              {[TABS[1], TABS[0], TABS[2]].map((t) => (
+                <Link key={t.href} href={t.href} role="menuitem" className="mitem" aria-current={t.match(path) ? "page" : undefined} onClick={(e) => onTab(e, t)}>
+                  {t.label}{t.match(path) && <Icon name="check" size={16} />}
+                </Link>
+              ))}
+              <button type="button" role="menuitem" className="mitem mout" onClick={logout} disabled={blocked || busy}>{busy ? "กำลังออก" : "ออกจากระบบ"}</button>
+              {blocked && <div className="mwhy">ยังมีเกมรอส่ง {items.length} เกม ออกจากระบบไม่ได้จนกว่าจะส่งเข้าระบบครบ</div>}
+            </div>
+          )}
         </div>
       </div>
     </header>

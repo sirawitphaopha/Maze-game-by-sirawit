@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { flushPending, NODB_TEXT, pendingServerSnapshot, pendingSnapshot, subscribePending } from "@/lib/games";
+import { flushPending, isWaiting, NODB_TEXT, pendingServerSnapshot, pendingSnapshot, subscribePending } from "@/lib/games";
 import Icon from "./Icon";
 
 /* ============================================================
@@ -16,7 +16,9 @@ const BACKOFF_S = [20, 40, 80, 160, 300];
 const NODB_S = 300;
 
 export default function PendingBar() {
-  const items = useSyncExternalStore(subscribePending, pendingSnapshot, pendingServerSnapshot);
+  const all = useSyncExternalStore(subscribePending, pendingSnapshot, pendingServerSnapshot);
+  // เกมที่หน้าเล่นเกมกำลังส่งรอบแรกยังไม่นับ (เก็บลงเครื่องก่อนส่ง docs/BUGHUNT-2026-10-21.md ข้อ 3) · หน้าปิดกลางทาง หมดเวลาแล้วนับเป็นรอส่งปกติ
+  const items = all.filter((x) => isWaiting(x));
   const [busy, setBusy] = useState(false);
   const [okMsg, setOkMsg] = useState("");
   const [rejected, setRejected] = useState<Array<{ label: string; reason: string }>>([]);
@@ -98,7 +100,9 @@ export default function PendingBar() {
         <div className="pendbar wait" role="status" aria-live="polite">
           <Icon name="cloudoff" size={16} />
           <b>รอส่ง {items.length} เกม ยังไม่เข้าระบบ</b>
-          <span className="sub">{items.slice(0, 3).map((x) => x.rec.label).join("  ")}{items.length > 3 ? `  และอีก ${items.length - 3} เกม` : ""}</span>
+          {/* ชื่อเกมละโหนด ตัวแปลภาษาจะแปลได้ทีละชื่อ (docs/BUGHUNT-2026-10-21.md ข้อ 16) */}
+          {items.slice(0, 3).map((x) => <span key={x.rec.saveKey} className="sub">{x.rec.label}</span>)}
+          {items.length > 3 && <span className="sub">และอีก {items.length - 3} เกม</span>}
           <span className="sub">บันทึกไว้ในเครื่องนี้แล้ว ปิดหน้าต่างได้</span>
           <span className="sub">{noDb ? "ยังไม่ได้ตั้งค่าเชื่อมฐานข้อมูล ระบบจะส่งให้เมื่อตั้งค่าแล้ว" : "ระบบจะส่งให้อัตโนมัติเมื่อเชื่อมต่อได้"}</span>
           {countdown && !busy && <span className="sub">จะลองส่งอีกครั้งในอีก {countdown.secs} วินาที ลองแล้ว {countdown.tries} ครั้ง</span>}

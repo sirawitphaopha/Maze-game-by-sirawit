@@ -26,7 +26,9 @@ export default function CommitRange({ id, min, max, step, value, onInput, onComm
       step={step}
       value={value}
       onChange={(e) => onInput(+e.target.value)}
-      onPointerUp={commit}
+      // ปล่อยเมาส์หรือนิ้วแล้วเอาโฟกัสออกจากแถบ ไม่งั้นกดลูกศรเพื่อเดินกลายเป็นเลื่อนแถบและสร้างด่านใหม่ทุกครั้ง
+      // (docs/BUGHUNT-2026-10-21.md ข้อ 22 · ติดมาจากไฟล์เดิม) · ใช้คีย์บอร์ดล้วนยังปรับแถบด้วยลูกศรได้ตามเดิม
+      onPointerUp={(e) => { commit(e); e.currentTarget.blur(); }}
       // เฉพาะปุ่มที่ขยับแถบได้ กด Tab ผ่านแถบแล้วต้องไม่ทำงาน
       onKeyUp={(e) => { if (MOVE_KEYS.has(e.key)) commit(e); }}
     />

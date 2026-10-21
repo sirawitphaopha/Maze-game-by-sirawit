@@ -131,6 +131,8 @@ export function solve(n: number, R: Uint8Array, B: Uint8Array, far = false): { p
   let ex = n >> 1;
   if (far) for (let x = 0; x < n; x++) if (dist[n * (n - 1) + x] > dist[n * (n - 1) + ex]) ex = x;
   const e = n * (n - 1) + ex, p: number[] = [];
+  // ทางออกไปไม่ถึง = ผังเสีย ไล่ย้อนต่อจะวนไม่จบ (docs/BUGHUNT-2026-10-21.md ข้อ 1)
+  if (prev[e] < 0) throw new Error("ทางออกไปไม่ถึงจากทางเข้า");
   let c = e;
   while (c !== s) { p.push(c); c = prev[c]; }
   p.push(s);
@@ -186,9 +188,10 @@ export function countChoices(n: number, R: Uint8Array, B: Uint8Array, path: numb
   return cnt;
 }
 
-/** ซอกตันสั้น จากปลายตันทุกช่อง เดินย้อนจนถึงจุดแยก ถ้ายาวไม่ถึง L นับเป็น 1 */
-export function shortStubs(n: number, R: Uint8Array, B: Uint8Array, L: number): number {
-  const s = n >> 1, e = n * (n - 1) + (n >> 1);
+/** ซอกตันสั้น จากปลายตันทุกช่อง เดินย้อนจนถึงจุดแยก ถ้ายาวไม่ถึง L นับเป็น 1
+    ex = ตำแหน่งทางออกจริง (เดิมใช้ทางออกกลางเสมอ ห้องทดลองย้ายทางออกแล้วตัวเลขคลาด docs/BUGHUNT-2026-10-21.md ข้อ 18) */
+export function shortStubs(n: number, R: Uint8Array, B: Uint8Array, L: number, ex = n >> 1): number {
+  const s = n >> 1, e = n * (n - 1) + ex;
   let k = 0;
   const deg = (c: number) => openNb(c, n, R, B).length + (c === s || c === e ? 1 : 0);
   for (let tip = 0; tip < n * n; tip++) {

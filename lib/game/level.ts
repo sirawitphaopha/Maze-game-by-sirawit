@@ -76,6 +76,8 @@ export function solveTo(m: MazeData): number[] {
     const c = q[h++];
     for (const t of openNb(c, n, R, B)) if (prev[t] < 0) { prev[t] = c; q.push(t); }
   }
+  // ทางออกไปไม่ถึง = ผังเสีย · เดิมไล่ย้อนต่อไปเรื่อย ๆ ไม่มีวันจบ เซิร์ฟเวอร์ค้างจนหน่วยความจำเต็ม (docs/BUGHUNT-2026-10-21.md ข้อ 1)
+  if (prev[e] < 0) throw new Error("ทางออกไปไม่ถึงจากทางเข้า");
   const p: number[] = [];
   let c = e;
   while (c !== s) { p.push(c); c = prev[c]; }

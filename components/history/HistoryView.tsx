@@ -30,10 +30,11 @@ const dayOf = (iso: string) => new Date(iso).toLocaleDateString("th-TH", { day: 
 const clockOf = (iso: string) => `${new Date(iso).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.`;
 // ระยะเวลาแบบสั้นพอดีการ์ด ยาวสุดราว 12 ตัวอักษร ทุกกรณี (พี่กันสั่ง "ประเมินทุก scenario ที่เป็นไปได้ จะได้เว้นช่องเอาไว้ มันจะได้ไม่ทับกัน")
 // ไม่ถึงนาที 32.4 วินาที · ไม่ถึงชั่วโมง 12:04.5 นาที · ชั่วโมงขึ้นไป 1 ชม. 5 นาที
+// ปัดลงเป็นหนึ่งในสิบวินาทีก่อนแยกนาทีกับวินาที แบบเดียวกับ fmt ในแถบบน (เดิมปัดขึ้นหลังเทียบ ได้ 1:010.0 นาที 1:60.0 นาที 60.0 วินาที docs/BUGHUNT-2026-10-21.md ข้อ 17)
 const dur = (ms: number) => {
-  const s = Math.max(0, ms) / 1000;
-  if (s < 60) return `${s.toFixed(1)} วินาที`;
-  if (s < 3600) { const m = Math.floor(s / 60), r = s - m * 60; return `${m}:${r < 10 ? "0" : ""}${r.toFixed(1)} นาที`; }
+  const t = Math.floor(Math.max(0, ms) / 100), s = t / 10;
+  if (t < 600) return `${s.toFixed(1)} วินาที`;
+  if (t < 36000) { const m = Math.floor(t / 600), r = (t % 600) / 10; return `${m}:${r < 10 ? "0" : ""}${r.toFixed(1)} นาที`; }
   const h = Math.floor(s / 3600); return `${h} ชม. ${Math.floor((s - h * 3600) / 60)} นาที`;
 };
 
@@ -51,7 +52,7 @@ const COLS: Col[] = [
   { k: "time", label: "เวลา", num: true, skel: 48, cell: (g) => fmt(g.time_ms) },
   { k: "steps", label: "ก้าว", num: true, skel: 36, cell: (g) => <>{th(g.steps)}<span className="mut"> / {th(g.shortest)}</span></> },
   { k: "wrong", label: "เลี้ยวผิด", num: true, skel: 28, cell: (g) => th(g.wrong) },
-  { k: "rep", label: "ที่มา", skel: 56, cell: (g) => <span className={`srcpill${g.replay_of ? " re" : ""}`}>{g.replay_of ? "เล่นด่านเดิมซ้ำ" : "ด่านใหม่"}</span> },
+  { k: "rep", label: "ที่มา", skel: 56, cell: (g) => <span className={`srcpill${g.replay_of ? " re" : ""}`}>{g.replay_of ? <><span className="lfull">เล่นด่านเดิมซ้ำ</span><span className="lshort" hidden>เล่นซ้ำ</span></> : "ด่านใหม่"}</span> },
   { k: "go", label: "", skel: 40, cell: () => <span className="go">ดูย้อน<Icon name="right" size={14} /></span> },
 ];
 
@@ -93,7 +94,10 @@ export default function HistoryView() {
     setDel(null);
     if (r.ok) {
       showBanner({ kind: "ok", title: `ลบวงกตที่เล่นวันที่ ${whenN(g.played_at)} แล้ว` });
-      setLoad((l) => (l.kind === "ok" ? { ...l, games: l.games.filter((x) => x.id !== g.id), total: Math.max(0, l.total - 1) } : l));
+      // ลบตัวสุดท้ายของหน้า 2 ขึ้นไป ย้ายไปหน้าก่อน (เดิมขึ้นว่ายังไม่มีเกม พร้อมป้ายหน้า 2 จาก 1 docs/BUGHUNT-2026-10-21.md ข้อ 5)
+      const left = load.kind === "ok" ? load.games.filter((x) => x.id !== g.id) : [];
+      if (load.kind === "ok" && left.length === 0 && page > 1) { force.current = true; go(page - 1); }
+      else setLoad((l) => (l.kind === "ok" ? { ...l, games: l.games.filter((x) => x.id !== g.id), total: Math.max(0, l.total - 1) } : l));
     } else {
       showBanner({ kind: "error", title: "ลบไม่สำเร็จ วงกตนี้ยังอยู่ในระบบ", lines: [r.error || failText(r.why)] });
     }
@@ -114,6 +118,12 @@ export default function HistoryView() {
     let alive = true;
     void listGames(p).then((r) => {
       if (!alive) return;
+      // หน้าที่จำไว้ไม่มีเกมแล้ว (ถูกลบจากเครื่องอื่น) แต่ยังมีเกมหน้าก่อน ๆ ไปหน้าสุดท้ายที่มีจริง (ข้อ 5)
+      if (r.ok && r.data.games.length === 0 && r.data.total > 0 && p > 1) {
+        const last = Math.max(1, Math.ceil(r.data.total / r.data.pageSize));
+        lastPage = last; force.current = true; setPage(last);
+        return;
+      }
       if (r.ok) setLoad({ kind: "ok", games: r.data.games, total: r.data.total, pageSize: r.data.pageSize });
       else if (!c) setLoad({ kind: "error", reason: r.error || failText(r.why) });
     });
@@ -155,7 +165,7 @@ export default function HistoryView() {
           <div className="histsum">
             <div className="stat"><div className="k">เกมทั้งหมด</div><div className="v">{th(load.total)}</div></div>
             <div className="stat"><div className="k">คะแนนเฉลี่ย</div><div className="v">{th(avg)}</div></div>
-            <div className="stat"><div className="k">ได้ 100 คะแนน</div><div className="v">{th(perfect)}<span className="u"> เกม</span></div></div>
+            <div className="stat"><div className="k"><span className="lfull">ได้ 100 คะแนน</span><span className="lshort" hidden>100 คะแนน</span></div><div className="v">{th(perfect)}<span className="u"> เกม</span></div></div>
             <div className="stat tone-wrong"><div className="k">เลี้ยวผิดเฉลี่ย</div><div className="v">{avgWrong.toFixed(1)}<span className="u"> ครั้ง</span></div></div>
           </div>
           {pages > 1 && <p className="sumnote">คะแนนเฉลี่ย ได้ 100 คะแนน และเลี้ยวผิดเฉลี่ย คิดจาก {th(games.length)} เกมในหน้านี้</p>}
@@ -167,7 +177,7 @@ export default function HistoryView() {
             <span>โหลดประวัติไม่สำเร็จ {load.reason}</span>
             <button type="button" className="btn" onClick={retry}>ลองโหลดอีกครั้ง</button>
           </div>
-        ) : !showSkel && load.kind === "ok" && load.games.length === 0 ? (
+        ) : !showSkel && load.kind === "ok" && load.total === 0 ? (
           <div className="emptybox">ยังไม่มีเกมที่บันทึกไว้ เล่นจบหนึ่งเกมแล้วจะขึ้นที่นี่</div>
         ) : view === "grid" ? (
           <div className="mgrid">
@@ -181,7 +191,7 @@ export default function HistoryView() {
                 ))
               : load.kind === "ok" &&
                 load.games.map((g) => (
-                  <div key={g.id} className="mcard" role="link" tabIndex={0} onClick={() => router.push(`/history/${g.id}`)} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); router.push(`/history/${g.id}`); } }} aria-label={`ดูย้อนเกมวันที่ ${when(g.played_at)} ${g.score} คะแนน`}>
+                  <div key={g.id} className="mcard" role="group" tabIndex={0} onClick={() => router.push(`/history/${g.id}`)} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); router.push(`/history/${g.id}`); } }} aria-label={`ดูย้อนเกมวันที่ ${when(g.played_at)} ${g.score} คะแนน`}>
                     {/* หัวการ์ด ระดับกับขนาดตาราง เหนือภาพ (พี่กันสั่ง "เอา กลาง ไปไว้ที่อื่นหน่อย") */}
                     <span className="mrow"><span className="lvpill">{LEVEL_NAME[g.level as Level] ?? g.level}</span><span className="mhead"><span className="mut">{g.size} × {g.size} ช่อง</span><button type="button" className="iconbtn delbtn" aria-label={`ลบวงกตที่เล่นวันที่ ${when(g.played_at)}`} title="ลบวงกตนี้" onClick={(e) => { e.stopPropagation(); askDelete(g); }} onKeyDown={(e) => e.stopPropagation()}><Icon name="trash" size={15} /></button></span></span>
                     <MazeThumb g={g} label={`เขาวงกตที่เล่นจบ วันที่ ${when(g.played_at)}`} />
@@ -223,7 +233,7 @@ export default function HistoryView() {
                           ? <td key={c.k} className="peekcell" onMouseEnter={(e) => showPeek(g, e.currentTarget)} onMouseLeave={() => setPeek(null)}><Icon name="grid" size={13} />{c.cell(g)}</td>
                           : c.k === "go"
                           ? <td key={c.k} className="gocell">{c.cell(g)}<button type="button" className="iconbtn delbtn" aria-label={`ลบวงกตที่เล่นวันที่ ${when(g.played_at)}`} title="ลบวงกตนี้" onClick={(e) => { e.stopPropagation(); askDelete(g); }} onKeyDown={(e) => e.stopPropagation()}><Icon name="trash" size={15} /></button></td>
-                          : <td key={c.k} className={c.num ? "num" : undefined}>{c.cell(g)}</td>)}
+                          : <td key={c.k} className={c.num ? "num" : undefined} data-label={(c.k === "opt" ? "ทางหลอกขั้นต่ำ" : c.label) || undefined}>{c.cell(g)}</td>)}
                       </tr>
                     ))}
               </tbody>

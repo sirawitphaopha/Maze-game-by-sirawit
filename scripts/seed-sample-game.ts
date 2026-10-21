@@ -62,4 +62,11 @@ const body = {
 const res = await fetch(BASE + "/api/games", { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify(body) });
 const j = (await res.json()) as { id?: string; duplicate?: boolean; error?: string };
 console.log(res.ok ? `บันทึกแล้ว รหัส ${j.id}${j.duplicate ? " (มีอยู่แล้ว ใช้แถวเดิม)" : ""}` : `ไม่สำเร็จ ${res.status} ${j.error}`);
-console.log(`ก้าว ${G.steps} · ทางสั้นสุด ${r.shortest} · เลี้ยวผิด ${G.wrong} · คะแนน ${r.score} · เวลา ${TOTAL_MS} มิลลิวินาที`);
+if (res.ok && j.duplicate) {
+  // แถวนี้มีอยู่แล้ว ด่านที่เพิ่งสุ่มไม่ได้บันทึก พิมพ์ตัวเลขของแถวในฐานแทน (เดิมพิมพ์ของด่านใหม่ หลอกคนตรวจ docs/BUGHUNT-2026-10-21.md ข้อ 15)
+  const old = await fetch(`${BASE}/api/games/${j.id}`, { headers: { cookie } });
+  const o = ((await old.json()) as { game?: { steps: number; shortest: number; wrong: number; score: number; time_ms: number } }).game;
+  console.log(o ? `แถวในฐาน ก้าว ${o.steps} · ทางสั้นสุด ${o.shortest} · เลี้ยวผิด ${o.wrong} · คะแนน ${o.score} · เวลา ${o.time_ms} มิลลิวินาที` : `อ่านแถวเดิมไม่สำเร็จ ${old.status}`);
+} else {
+  console.log(`ก้าว ${G.steps} · ทางสั้นสุด ${r.shortest} · เลี้ยวผิด ${G.wrong} · คะแนน ${r.score} · เวลา ${TOTAL_MS} มิลลิวินาที`);
+}

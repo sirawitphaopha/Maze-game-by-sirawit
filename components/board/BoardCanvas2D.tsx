@@ -18,9 +18,11 @@ type Props = {
   onPointerDown?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   onPointerMove?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
   onPointerUp?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
+  /** มือถือ กระดานที่กดได้แต่ตอนนี้ยังไม่ให้เล่น (ก่อนกดเริ่มเกม หรือจบเกมแล้ว) แตะแล้วเลื่อนหน้าได้ · จอคอมไม่มีผล */
+  scroll?: boolean;
 };
 
-export default function BoardCanvas2D({ ref, getView, ariaLabel, tabIndex, onPointerDown, onPointerMove, onPointerUp }: Props) {
+export default function BoardCanvas2D({ ref, getView, ariaLabel, tabIndex, onPointerDown, onPointerMove, onPointerUp, scroll }: Props) {
   const cv = useRef<HTMLCanvasElement | null>(null);
   const viewRef = useRef(getView);
   useEffect(() => { viewRef.current = getView; }, [getView]);
@@ -52,7 +54,8 @@ export default function BoardCanvas2D({ ref, getView, ariaLabel, tabIndex, onPoi
   return (
     <canvas
       ref={cv}
-      className="board"
+      // live = กระดานที่ลากนิ้วเดินได้ (หน้าเล่นเกม) เท่านั้นที่ห้ามเลื่อนหน้า · ภาพย่อหน้าประวัติกับตัวดูย้อนปัดนิ้วเลื่อนหน้าได้ (docs/BUGHUNT-2026-10-21.md ข้อ 8)
+      className={onPointerDown ? (scroll ? "board live scroll" : "board live") : "board"}
       tabIndex={tabIndex}
       role="img"
       aria-label={ariaLabel}

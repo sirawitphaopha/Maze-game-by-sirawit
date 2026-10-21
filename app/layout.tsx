@@ -20,7 +20,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   // เปิดจากไอคอนบนหน้าจอโฮมแบบแอป (ไฟล์ประกาศตัวตน app/manifest.ts) · iPhone ไม่อ่านไฟล์นั้นครบ ต้องบอกซ้ำตรงนี้
   // statusBarStyle ใช้ default แบบปลอดภัย เป็นเรื่องหน้าตาที่ต้องให้พี่กันเลือก (สกิล mobile-web-app) ยังไม่ได้ถาม
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "เขาวงกต" },
+  // แถบสถานะของ iPhone โปร่งใส สีแถบบนของเว็บลากขึ้นไปเต็มถึงขอบบน (พี่กันสั่ง 21 ต.ค. 2569 "ส่วนหัวที่มันดำ ๆ ให้มันขยายสีขึ้นไปด้วย")
+  // ต้องคู่กับ viewportFit cover (มีแล้ว) และขอบบนของแถบบนกันที่ให้เวลากับแบต (app/mobile.css) · มีผลเฉพาะเปิดจากไอคอนบนหน้าจอโฮม
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "เขาวงกต" },
 };
 
 // ห้ามซูมทุกเว็บ ชั้นที่ 1 (สกิล mobile-web-app) · ชั้นอื่นอยู่ใน MOBILE_BOOT กับท้าย app/mobile.css
@@ -39,7 +41,10 @@ const LANG_BOOT = `try{if(localStorage.getItem("maze-lang")==="en"){document.doc
    · ห้ามซูมชั้นที่ 3 ดักท่าบีบซูมของ Safari
    · หน้าไถลซ้ายขวา ดีดตำแหน่งเลื่อนแนวนอนของทั้งหน้ากลับเป็น 0 ทุกครั้ง เฉพาะตอนเป็นมือถือ (ตารางเลื่อนข้างของตัวเองได้ตามปกติ) */
 const MOBILE_Q = "(max-width: 759px)";
+/* มือถือ เปิดเว็บครั้งแรกของรอบ (แท็บนี้) ที่หน้าแรก พาไปหน้าเล่นเกมทันทีก่อนจอวาด (พี่กันสั่ง 21 ต.ค. 2569 "หน้าจอหลักคือวงกต และปุ่มเล่นเกมจะแสดงอย่างแรก")
+   จำไว้ใน sessionStorage ครั้งต่อไปเลือกห้องทดลองจากเมนูได้ตามปกติ · จอคอมไม่โดน */
 const MOBILE_BOOT = `try{var d=document.documentElement,q=matchMedia("${MOBILE_Q}"),s=function(){d.classList.toggle("mz-mobile",q.matches)};s();q.addEventListener("change",s);
+try{if(q.matches&&!sessionStorage.getItem("mz-landed")){sessionStorage.setItem("mz-landed","1");if(location.pathname==="/")location.replace("/play")}}catch(e){}
 ["gesturestart","gesturechange","gestureend"].forEach(function(e){document.addEventListener(e,function(v){v.preventDefault()},{passive:false})});
 var p=function(){if(!d.classList.contains("mz-mobile"))return;if(d.scrollLeft)d.scrollLeft=0;if(document.body&&document.body.scrollLeft)document.body.scrollLeft=0;if(window.scrollX)window.scrollTo(0,window.scrollY)};
 window.addEventListener("scroll",p,{passive:true});window.addEventListener("touchmove",p,{passive:true});window.addEventListener("touchend",p,{passive:true})}catch(e){}`;

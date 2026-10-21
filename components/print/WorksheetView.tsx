@@ -106,7 +106,7 @@ function Papers({ s }: { s: Sheet }) {
     <div className="printdoc">
       <div className="paperscroll">
         <div className="paper">
-          <div className="ph">
+          <div className="phead">
             <h2>ใบงานเขาวงกต</h2>
             <div className="meta">{meta}<br />{today}</div>
           </div>
@@ -121,7 +121,7 @@ function Papers({ s }: { s: Sheet }) {
           <div className="pf"><span>ห้องทดลองเขาวงกต</span><span>หน้า 1 จาก 2</span></div>
         </div>
         <div className="paper">
-          <div className="ph">
+          <div className="phead">
             <h2>เฉลย</h2>
             <div className="meta">{meta}<br />{today}</div>
           </div>

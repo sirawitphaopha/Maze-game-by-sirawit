@@ -1,7 +1,7 @@
 /* ไอคอนวาดเอง ไม่ใช้ตัวอักษรพิเศษ บางเครื่องวาดเป็นกล่องเปล่าหรืออีโมจิ (สกิลกลางข้อ 2 · new-web-checklist)
    ปุ่มลูกศรเดิมใช้ ◀ ▶ ▲ ▼ ซึ่งไอโฟนบางรุ่นวาด ◀ ▶ เป็นอีโมจิกรอบสีฟ้า (บั๊กข้อ 7) */
 
-export type IconName = "up" | "down" | "left" | "right" | "x" | "check" | "alert" | "cloud" | "cloudoff" | "play" | "pause" | "restart" | "print" | "sun" | "moon" | "eye" | "undo" | "backspace" | "giveup" | "torch" | "sound" | "mute" | "list" | "grid" | "trash" | "lv1" | "lv2" | "lv3" | "lv4" | "trophy" | "sliders" | "tostart";
+export type IconName = "up" | "down" | "left" | "right" | "x" | "check" | "alert" | "cloud" | "cloudoff" | "play" | "pause" | "restart" | "print" | "sun" | "moon" | "eye" | "undo" | "backspace" | "giveup" | "torch" | "sound" | "mute" | "list" | "grid" | "trash" | "lv1" | "lv2" | "lv3" | "lv4" | "trophy" | "sliders" | "tostart" | "menu";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   up: <path d="M12 5 4.5 15.5h15Z" fill="currentColor" stroke="none" />,
@@ -42,6 +42,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   // ตัวปรับสามแถบ ปุ่มคืนค่าตั้งต้นของตัวปรับในห้องทดลอง (พี่กันสั่ง 21 ต.ค. 2569 "ใส่ไอคอนปุ่มนี้")
   sliders: <><path d="M4 6.5h3.5M11.5 6.5H20M4 12h9.5M17.5 12H20M4 17.5h2.5M10.5 17.5H20" /><circle cx="9.5" cy="6.5" r="2" /><circle cx="15.5" cy="12" r="2" /><circle cx="8.5" cy="17.5" r="2" /></>,
   // กลับไปจุดเริ่ม เส้นตั้งกับสามเหลี่ยมชี้ซ้าย ปุ่มในตัวดูย้อน (แยกให้ต่างจากปุ่มเล่นซ้ำ)
+  // ปุ่มเลือกแท็บบนมือถือ (พี่กันสั่ง 21 ต.ค. 2569 "มีปุ่มเปลี่ยนภาษา โหมดมืด ก็เอาอีกปุ่มเอาไว้เลือกแท็บ")
+  menu: <path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h15" />,
   tostart: <><path d="M6.5 5.5v13" /><path d="M18.5 5.5v13L8.5 12Z" fill="currentColor" stroke="none" /></>,
   // ปุ่มลบเกมในหน้าประวัติ
   trash: <><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M6.5 7l1 13h9l1-13" /><path d="M10 11v5.5M14 11v5.5" /></>,

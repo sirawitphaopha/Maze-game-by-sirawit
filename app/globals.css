@@ -200,9 +200,9 @@ select:hover { border-color: var(--line-hover); }
 @media (prefers-reduced-motion: reduce) { .bar .f { transition: none; } }
 .tabs { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 2px; }
 .tab { font: inherit; font-family: var(--f-display); font-weight: 500; font-size: 15px; line-height: 1.4; padding: 4px 16px; border: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: none; border-radius: 8px; transition: background-color .15s ease, color .15s ease; }
-.tab[aria-selected="true"] { background: var(--accent); color: var(--surface); }
+.tab[aria-current="page"] { background: var(--accent); color: var(--surface); }
 .tab:hover { background: var(--accent-soft); color: var(--accent); }
-.tab[aria-selected="true"]:hover { background: var(--accent-hover); color: var(--surface); }
+.tab[aria-current="page"]:hover { background: var(--accent-hover); color: var(--surface); }
 .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* ช่องไฟระหว่างก้อนในหน้า 8 จุดทั้งเว็บ (พี่กันทัก "โคตรห่าง" ที่หน้าประวัติ) */
 .view { display: flex; flex-direction: column; gap: 8px; }
@@ -217,7 +217,9 @@ select:hover { border-color: var(--line-hover); }
 @media (max-width: 420px) { .hud b { font-size: 16px; } }
 .status { font-size: 13px; color: var(--muted); margin: 0; text-align: center; min-height: 1.6em; }
 .stage { position: relative; width: 100%; max-width: 640px; margin: 0 auto; }
-.board { touch-action: none; outline: none; cursor: pointer; }
+/* ห้ามเลื่อนและเมาส์รูปมือเฉพาะกระดานที่กดได้ (หน้าเล่นเกม) · ตัวดูย้อนไม่มีการกดบนกระดาน · ภาพย่อในการ์ดได้รูปมือจากการ์ดเอง (docs/BUGHUNT-2026-10-21.md ข้อ 8) */
+.board { outline: none; }
+.board.live { touch-action: none; cursor: pointer; }
 .board:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .win { display: flex; justify-content: center; }
 .wincard { border: 1.5px solid var(--accent); border-radius: 12px; padding: 16px; width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 12px; }
@@ -621,9 +623,10 @@ table.games tbody tr:hover .go, table.games tbody tr:focus-visible .go { opacity
 .printdoc { padding: 0 0 24px; }
 .printdoc .paperscroll { overflow-x: auto; }
 .paper { background: #fff; color: #000; width: 210mm; height: 296mm; overflow: hidden; margin: 0 auto 8mm; padding: 14mm; box-shadow: 0 6px 24px rgba(0, 0, 0, .14); display: flex; flex-direction: column; gap: 5mm; font-family: var(--f-body); }
-.paper .ph { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; }
-.paper .ph h2 { font-family: var(--f-display); font-size: 20pt; margin: 0; font-weight: 600; line-height: 1.2; }
-.paper .ph .meta { font-size: 10pt; color: #333; text-align: right; line-height: 1.5; }
+/* หัวกระดาษใบงาน · เดิมชื่อ .ph ชนกับคลาสกลางห้ามตัดบรรทัด ข้อความยาวขึ้นจะถูกตัดทิ้งเงียบ ๆ (docs/BUGHUNT-2026-10-21.md ข้อ 33) */
+.paper .phead { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; }
+.paper .phead h2 { font-family: var(--f-display); font-size: 20pt; margin: 0; font-weight: 600; line-height: 1.2; }
+.paper .phead .meta { font-size: 10pt; color: #333; text-align: right; line-height: 1.5; }
 .paper .fields { display: flex; gap: 8mm; font-size: 13pt; }
 .paper .fld { display: flex; align-items: baseline; gap: 2mm; white-space: nowrap; min-width: 0; }
 .paper .fld i { flex: 1; min-width: 10mm; border-bottom: 1.5px dotted #000; transform: translateY(-1mm); }
@@ -672,7 +675,7 @@ table.games tbody tr:hover .go, table.games tbody tr:focus-visible .go { opacity
 /* ── ไล่โทนสีฟ้าน้ำทะเล ปุ่มหลัก ปุ่มที่เลือกอยู่ แท็บ แถบกราฟ แถบคะแนน (พี่กันสั่ง 21 ต.ค. 2569 "ลองไล่โทนสี") ──
    โทนเดียวกับชื่อเว็บ ปลายเฉด --grad2 โหมดสว่างเข้มกว่า --sea2 ให้ตัวหนังสือขาวบนปุ่มยังอ่านชัด
    เขียนท้ายไฟล์ให้ทับสีพื้นทึบของแต่ละกฎข้างบน · ชี้แล้วเปลี่ยนเฉดเข้มขึ้น */
-.btn.primary, .btn.primary:disabled:hover, .seg button[aria-pressed="true"], .chip[aria-pressed="true"], .tab[aria-selected="true"], .speed button[aria-pressed="true"] {
+.btn.primary, .btn.primary:disabled:hover, .seg button[aria-pressed="true"], .chip[aria-pressed="true"], .tab[aria-current="page"], .speed button[aria-pressed="true"] {
   background: linear-gradient(135deg, var(--accent), var(--grad2));
 }
 .btn.primary, .chip[aria-pressed="true"] { border-color: transparent; }
@@ -927,3 +930,9 @@ button.bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
 
 /* ปุ่มสลับภาษา TH EN ข้างปุ่มสลับโหมด ขนาดเท่ากัน ตัวอักษรย่อสองตัว */
 .iconbtn.langbtn { width: auto; min-width: 30px; padding-inline: 7px; font: inherit; font-family: var(--f-mono); font-size: 12px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+
+/* โหมดอังกฤษ ซ่อนหน้าไว้จนตัวแปลแปลรอบแรกเสร็จ (components/ui/Translator.tsx ใส่คลาส mz-tr ที่ html)
+   เดิมเปิดเว็บแล้วเห็นแถบบนเป็นไทยแวบหนึ่ง ปุ่มภาษาขึ้น EN ก่อนแล้วค่อยเป็น TH (docs/BUGHUNT-2026-10-21.md ข้อ 30)
+   กันสคริปต์ไม่ทำงาน หน้าโผล่เองหลัง 1.2 วินาที · โหมดไทยไม่โดน */
+html[data-lang="en"]:not(.mz-tr) body { visibility: hidden; animation: mz-reveal 0s 1.2s forwards; }
+@keyframes mz-reveal { to { visibility: visible; } }

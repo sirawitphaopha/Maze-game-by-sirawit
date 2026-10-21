@@ -31,6 +31,9 @@ import { playMem, type PlayPrefs } from "@/lib/session";
    เล่นด่านเดิมจากประวัติ (?from=รหัสเกม) · พิมพ์ใบงาน
    ════════════════════════════════════════════════════════════════════ */
 
+/** หน้าจอแบบมือถือ (คลาสที่ html ตั้งโดยสคริปต์ในหัวเว็บ app/layout.tsx) */
+const onMobile = () => document.documentElement.classList.contains("mz-mobile");
+
 const SOL_MSG = "เส้นชมพูคือทางที่ไปถึงเส้นชัย เส้นสีอื่นคือทางแยกที่แตกออกไปแล้วไม่ถึง";
 const DEFAULT_PREFS: PlayPrefs = { level: "mid", algo: "wilson", minLen: LV_MINL.mid, loops: 0, fog: false };
 
@@ -63,7 +66,9 @@ export default function GameView() {
     if (fromId) return { G: null as Game | null, msg: "กำลังเปิดด่านจากประวัติ" };
     if (playMem.G) {
       const g = playMem.G;
-      return { G: g, msg: g.status === "play" ? "หยุดเวลาไว้ระหว่างที่ไม่ได้อยู่หน้านี้ กดเดินเพื่อเล่นต่อ" : "" };
+      // เกมที่กดดูเฉลยไว้ กลับมาแล้วเฉลยกับคำอธิบายยังอยู่ (เดิมหายและกดดูเฉลยอีกไม่ได้ docs/BUGHUNT-2026-10-21.md ข้อ 35)
+      const msg = g.status === "play" ? "หยุดเวลาไว้ระหว่างที่ไม่ได้อยู่หน้านี้ กดเดินเพื่อเล่นต่อ" : g.status === "gaveup" ? SOL_MSG + " รอบนี้ไม่นับสถิติ" : "";
+      return { G: g, msg };
     }
     const s = settingsOf(playMem.prefs ?? DEFAULT_PREFS), m = makeLevel(s), g = newGame(s, m);
     playMem.G = g; playMem.replayOf = null; playMem.saved = false;
@@ -82,7 +87,7 @@ export default function GameView() {
   const [status, setStatus] = useState(boot.msg);
   const [time, setTime] = useState(() => (boot.G ? clock(boot.G, performance.now()) : 0));
   const [win, setWin] = useState<WinInfo | null>(() => (boot.G && boot.G.status === "won" ? { r: result(boot.G), recTime: false, recScore: false } : null));
-  const [solOn, setSolOn] = useState(false);
+  const [solOn, setSolOn] = useState(() => boot.G?.status === "gaveup");
   const [save, setSave] = useState<SaveState>({ kind: "none" });
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [snap, setSnap] = useState(() => snapOf(boot.G, prefs));
@@ -90,6 +95,17 @@ export default function GameView() {
   // ระหว่างพักกระดานถูกปิดไว้ ไม่ให้แอบดูทางโดยไม่เสียเวลา · เดิน ปักธง กลับไปที่ธง ใช้ไม่ได้จนกว่าจะกดเล่นต่อ
   const [held, setHeld] = useState(false);
   const heldRef = useRef(false);
+  /* มือถือเท่านั้น (พี่กันสั่ง 21 ต.ค. 2569)
+     · ปุ่มเริ่มเกม "ถ้ายังไม่กดเริ่มเกม เราจะสัมผัสอะไรทั้งเอานิ้วลาก ทั้งกดแป้น เราจะทำไม่ได้" เดิมเลื่อนหน้าแล้วนิ้วโดนวงกต เกมเริ่มเอง
+       ก่อนกดเริ่ม (armed) ลากนิ้ว ปุ่มลูกศร ปักธง คีย์บอร์ด ไม่ทำงาน และแตะวงกตแล้วเลื่อนหน้าได้
+     · แผ่นตั้งค่าด่านกับวิธีเล่น "ทำเป็นปุ่มกดดู จะไม่อยู่หน้าเล่นเกม" กดปุ่มแล้วเลื่อนขึ้นจากขอบล่าง (sheet)
+     จอคอมไม่ใช้ทั้งสองอย่าง (isMobile เป็นเท็จ ปุ่มกับแผ่นซ่อนด้วย hidden · app/mobile.css เปิดให้เห็น) */
+  const [isMobile, setIsMobile] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const armedRef = useRef(false);
+  const [sheet, setSheet] = useState<null | "set">(null);
+  /** มือถือ ยังไม่กดเริ่มเกม และยังไม่เริ่มเดิน = ห้ามเล่น */
+  const locked = useCallback(() => onMobile() && !armedRef.current && G.current?.status === "ready", []);
 
   const sync = useCallback(() => {
     setVer((v) => v + 1);
@@ -146,6 +162,15 @@ export default function GameView() {
     raf.current = requestAnimationFrame(tick);
   }, [stopSol]);
 
+  // กลับมาที่เกมที่กดดูเฉลยไว้ วาดเฉลยเต็มทันที ไม่เล่นแอนิเมชันซ้ำ (docs/BUGHUNT-2026-10-21.md ข้อ 35)
+  useEffect(() => {
+    const g = G.current;
+    if (!g || g.status !== "gaveup" || sol.current) return;
+    sol.current = solRun(g.n, g.R, g.B, g.s, g.e, g.onPath, performance.now());
+    sol.current.done = true;
+    board.current?.draw();
+  }, []);
+
   /** เริ่มเกมด้วยผังที่ให้มา (ด่านใหม่ หรือด่านเดิมจากประวัติ) */
   const begin = useCallback((s: Settings, m: MazeData, replayOf: string | null) => {
     stopSol();
@@ -155,6 +180,7 @@ export default function GameView() {
     playMem.G = g; playMem.replayOf = replayOf; playMem.saved = false;
     setWin(null); setSolOn(false); setSave({ kind: "none" }); setTime(0);
     heldRef.current = false; setHeld(false);
+    armedRef.current = false; setArmed(false);
     setStatus("");
     sync();
   }, [stopSol, sync]);
@@ -168,8 +194,11 @@ export default function GameView() {
   useEffect(() => {
     if (!fromId) return;
     let alive = true;
+    const before = G.current;
     void getGame(fromId).then((r) => {
       if (!alive) return;
+      // ระหว่างรอผู้เล่นเริ่มด่านอื่นเองแล้ว ทิ้งผลที่มาทีหลัง (เดิมทับด่านที่เพิ่งเลือก docs/BUGHUNT-2026-10-21.md ข้อ 36)
+      if (G.current !== before) { window.history.replaceState(null, "", "/play"); return; }
       if (!r.ok) { setLoadErr(r.error || failText(r.why)); setStatus(""); return; }
       const g = r.data.game, m = unpackWalls(g.size, g.exit_x, g.walls);
       if (!m) { setLoadErr("ผังด่านของเกมนี้เสีย เปิดไม่ได้"); return; }
@@ -183,6 +212,38 @@ export default function GameView() {
   }, [fromId, begin]);
 
   useEffect(() => { playMem.prefs = prefs; }, [prefs]);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const read = () => setIsMobile(html.classList.contains("mz-mobile"));
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(html, { attributes: true, attributeFilter: ["class"] });
+    return () => mo.disconnect();
+  }, []);
+
+  // แผ่นเปิดอยู่ กด Esc ปิด
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSheet(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [sheet]);
+
+  /** กดเริ่มเกม (มือถือ) · เลื่อนหน้ากลับขึ้นบนสุดทีละเฟรม ให้เห็นวงกตกับปุ่มเดินเต็มจอ (ห้ามใช้ behavior smooth ความรู้ทั่วไป knowledge_smooth_scroll_broken) */
+  const start = () => {
+    armedRef.current = true;
+    setArmed(true);
+    const y0 = window.scrollY;
+    if (y0 <= 0) return;
+    const t0 = performance.now(), D = reducedMotion() ? 0 : 260;
+    const step = (t: number) => {
+      const k = D ? Math.min(1, (t - t0) / D) : 1;
+      window.scrollTo(0, y0 * (1 - (1 - (1 - k) ** 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
 
   // ทางให้ชุดทดสอบอ่านสถานะเกมตอนรันในเครื่องเท่านั้น · ตอนสร้างเว็บจริงเงื่อนไขนี้เป็นเท็จ โค้ดส่วนนี้ถูกตัดทิ้ง
   useEffect(() => {
@@ -252,6 +313,13 @@ export default function GameView() {
     setSave({ kind: "saving" });
     showBanner({ kind: "progress", title: "กำลังบันทึกเกมเข้าระบบ" });
     void uploadGame(rec).then((res) => {
+      // ผลมาถึงตอนเริ่มเกมใหม่ไปแล้ว ห้ามเปลี่ยนการ์ดของเกมใหม่ บอกผลของเกมเก่าพร้อมชื่อเกมแทน
+      // เดิมผลของเกมก่อนหน้ามาทับการ์ดเกมใหม่ (docs/BUGHUNT-2026-10-21.md ข้อ 4)
+      if (playMem.G !== g) {
+        if (res.ok) showBanner({ kind: "ok", title: "บันทึกเกมก่อนหน้าเข้าระบบแล้ว" });
+        else if (!res.queued) showBanner({ kind: "error", title: "บันทึกเกมก่อนหน้าไม่สำเร็จ ข้อมูลยังไม่เข้าระบบ", lines: [rec.label, res.reason] });
+        return;
+      }
       if (res.ok) {
         setSave({ kind: "ok", id: res.id });
         showBanner({ kind: "ok", title: "บันทึกเกมเข้าระบบแล้ว" });
@@ -268,41 +336,44 @@ export default function GameView() {
 
   const doMove = useCallback((d: Dir): boolean => {
     const g = G.current;
-    if (!g || heldRef.current) return false;
-    const wasReady = g.status === "ready";
+    if (!g || heldRef.current || locked()) return false;
+    const wasReady = g.status === "ready", wasPaused = g.pausedAt !== null;
     const r = move(g, d, performance.now());
     if (!r.moved) return false;
-    if (wasReady) setStatus("");
+    // หยุดนาฬิกาไว้แล้วก้าวต่อ นาฬิกาเดินแล้ว ข้อความหยุดเวลาต้องหายด้วย (เดิมค้าง docs/BUGHUNT-2026-10-21.md ข้อ 9)
+    if (wasReady || wasPaused) setStatus("");
     if (!r.won) SFX.step(r.back);
     if (r.won) onWin(g);
     sync();
     return true;
-  }, [onWin, sync]);
+  }, [onWin, sync, locked]);
 
-  const bump = useCallback(() => { if (playing(G.current) && !heldRef.current) SFX.bump(); }, []);
+  const bump = useCallback(() => { if (playing(G.current) && !heldRef.current && !locked()) SFX.bump(); }, [locked]);
 
   const doFlag = useCallback(() => {
     const g = G.current;
-    if (!g || heldRef.current || !setFlag(g, performance.now())) return;
+    if (!g || heldRef.current || locked() || !setFlag(g, performance.now())) return;
     SFX.flag();
     say("ปักธงแล้ว หากพบทางตันให้กดกลับไปที่ธง");
     sync();
-  }, [say, sync]);
+  }, [say, sync, locked]);
 
   const doBack = useCallback(() => {
     const g = G.current;
-    if (!g || heldRef.current) return;
+    if (!g || heldRef.current || locked()) return;
     const r = backToFlag(g, performance.now());
     if (r === "noflag") { SFX.bump(); say("ยังไม่ได้ปักธง ควรปักไว้ที่ทางแยกก่อน"); return; }
     if (r !== "ok") return;
     SFX.warp();
     say("กลับมาที่ธงแล้ว วาร์ปไม่นับก้าว");
     sync();
-  }, [say, sync]);
+  }, [say, sync, locked]);
 
   const doGiveUp = useCallback(() => {
     const g = G.current;
     if (!g || !giveUp(g, performance.now())) return;
+    // กดดูเฉลยระหว่างพักเกม เอาม่านพักออก (เดิมเฉลยวิ่งอยู่ใต้ม่าน กดเล่นต่อแล้วคำอธิบายเฉลยหาย docs/BUGHUNT-2026-10-21.md ข้อ 23)
+    if (heldRef.current) { heldRef.current = false; setHeld(false); }
     SFX.giveUp();
     setStatus(SOL_MSG + " รอบนี้ไม่นับสถิติ");
     setSolOn(true);
@@ -344,7 +415,7 @@ export default function GameView() {
   // ลากนิ้วบนกระดาน · อ้อมได้ไม่เกิน 2 ก้าว ไกลกว่านั้นเดินตรงเข้าหานิ้ว
   const follow = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const g = G.current, cv = board.current?.el();
-    if (!g || !cv) return;
+    if (!g || !cv || locked()) return;
     const t = cellAt(cv, g.n, e.clientX, e.clientY);
     if (t < 0 || t === g.pos) return;
     const dirTo = (a: number, b: number): Dir => (b - a === 1 ? "r" : b - a === -1 ? "l" : b - a === g.n ? "d" : "u");
@@ -384,12 +455,28 @@ export default function GameView() {
 
   const bestT = snap.bestT, bestS = snap.bestS;
   const over = snap.status === "won";
+  const lockedNow = isMobile && !armed && snap.status === "ready";
+  /* คำอธิบายปุ่มครบทุกปุ่ม (พี่กันสั่ง 21 ต.ค. 2569 "เขียนคำอธิบายปุ่มให้ครบ") · จอคอมอยู่ใต้ปุ่มเดิน มือถืออยู่ในแผ่นตั้งค่าด่าน */
+  const helpList = (
+    <>
+      <dt>เดิน</dt>
+      <dd><Phr>{"ปุ่มลูกศรบนจอ ปุ่มลูกศรบนคีย์บอร์ด หรือ W A S D กดค้างไว้เพื่อเดินต่อเนื่อง หรือลากนิ้วบนเขาวงกต"}</Phr></dd>
+      <dt>เดินย้อน</dt>
+      <dd><Phr>{"เดินย้อนทางเดิม เส้นจะหดตามเอง"}</Phr></dd>
+      <dt>ปักธง<kbd className="kc" aria-hidden="true">F</kbd></dt>
+      <dd><Phr>{"ปักธงไว้ที่ช่องที่ยืนอยู่ ปักที่ช่องอื่นธงจะย้ายไปช่องใหม่"}</Phr></dd>
+      <dt><span className="lfull">กลับไปที่ธง</span><span className="lshort" hidden>กลับธง</span><kbd className="kc" aria-hidden="true">R</kbd></dt>
+      <dd><Phr>{"วาร์ปกลับไปที่ธงทันที ไม่นับก้าว"}</Phr></dd>
+      <dt><span className="lfull">พักเกม</span><span className="lshort" hidden>พัก</span><kbd className="kc" aria-hidden="true" title="Backspace"><Icon name="backspace" size={12} /></kbd></dt>
+      <dd><Phr>{"หยุดเวลาและซ่อนเขาวงกตไว้ กดอีกครั้งเพื่อเล่นต่อ พักได้เมื่อเริ่มเดินแล้ว"}</Phr></dd>
+    </>
+  );
 
   /* โครงหน้า (จัดใหม่ 21 ต.ค. 2569 พี่กันสั่ง "หน้าเล่นเกมในโหมดเดสก์ท็อป จัดให้มันเต็มจอ ... ออกแบบต่างจากมือถือได้เลย")
      จอคอม สามคอลัมน์ ซ้ายสถานะการเล่นกับปุ่มเดิน · กลางกระดานพอดีจอ · ขวาตั้งค่าด่านเลื่อนในตัวเอง
      ลำดับในโค้ด hud กระดาน ปุ่ม ตั้งค่า = ลำดับบนจอแคบ (globals.css หัวข้อหน้าเล่นเกม) */
   return (
-    <div className="view playpage wide">
+    <div className={`view playpage wide${lockedNow ? " locked" : ""}`} data-sheet={sheet ?? undefined}>
       <div className="play">
         <div className="pg-hud">
           <div className="hud">
@@ -411,12 +498,19 @@ export default function GameView() {
                 getView={getView}
                 tabIndex={0}
                 ariaLabel="เขาวงกตสำหรับเล่น ใช้ปุ่มลูกศรเพื่อเดิน"
-                onPointerDown={(e) => { dragging.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ไม่เป็นไร */ } e.currentTarget.focus({ preventScroll: true }); follow(e); }}
+                scroll={lockedNow || over || snap.status === "gaveup"}
+                onPointerDown={(e) => { if (locked()) return; dragging.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ไม่เป็นไร */ } e.currentTarget.focus({ preventScroll: true }); follow(e); }}
                 onPointerMove={(e) => { if (dragging.current) follow(e); }}
                 onPointerUp={() => { dragging.current = false; }}
               />
             ) : (
               <div className="boardskel" aria-label="กำลังเปิดด่าน" />
+            )}
+            {/* ปุ่มเริ่มเกม มือถือเท่านั้น · hidden ไว้ จอคอมไม่เห็น app/mobile.css เปิดให้เห็น · ทับวงกตแต่ยังมองเห็นวงกต แตะแล้วเลื่อนหน้าได้ */}
+            {game && snap.status === "ready" && !armed && (
+              <div className="startcover" hidden>
+                <button type="button" className="btn primary" onClick={start}><Icon name="play" size={18} />เริ่มเกม</button>
+              </div>
             )}
             {held && (
               <div className="pausecover" role="dialog" aria-label="พักเกม">
@@ -450,31 +544,28 @@ export default function GameView() {
               <DPad onMove={doMove} onBump={bump} />
               <div className="flagrow">
                 <button type="button" className="btn fbtn" onClick={doFlag} aria-keyshortcuts="F"><span className="flagico" aria-hidden="true" />ปักธง<kbd className="kc" aria-hidden="true">F</kbd></button>
-                <button type="button" className="btn fbtn" onClick={doBack} aria-keyshortcuts="R"><Icon name="undo" size={16} />กลับไปที่ธง<kbd className="kc" aria-hidden="true">R</kbd></button>
+                <button type="button" className="btn fbtn" onClick={doBack} aria-keyshortcuts="R"><Icon name="undo" size={16} /><span className="lfull">กลับไปที่ธง</span><span className="lshort" hidden>กลับธง</span><kbd className="kc" aria-hidden="true">R</kbd></button>
                 {/* พักได้เฉพาะตอนนาฬิกาเดินแล้ว (ก่อนก้าวแรกนาฬิกายังไม่เริ่ม) */}
                 <button type="button" className="btn fbtn" aria-pressed={held} aria-keyshortcuts="Backspace" onClick={() => setHold(!held)} disabled={!held && snap.status !== "play"}>
-                  <Icon name={held ? "play" : "pause"} size={16} />{held ? "เล่นต่อ" : "พักเกม"}<kbd className="kc" aria-hidden="true" title="Backspace"><Icon name="backspace" size={13} /></kbd>
+                  <Icon name={held ? "play" : "pause"} size={16} />{held ? "เล่นต่อ" : <><span className="lfull">พักเกม</span><span className="lshort" hidden>พัก</span></>}<kbd className="kc" aria-hidden="true" title="Backspace"><Icon name="backspace" size={13} /></kbd>
                 </button>
+                {/* ปุ่มตั้งค่า มือถือเท่านั้น อยู่แถวเดียวกับปุ่มธง กดแล้วแผ่นตั้งค่าด่านเด้งขึ้นจากขอบล่าง ข้างในมีวิธีเล่นด้วย
+                    (พี่กันสั่ง 21 ต.ค. 2569 "ปุ่มตั้งค่าวิธีเล่น เอาเข้าไปในแท็บ ตั้งค่าด่าน เลย และเอาปุ่มนี้ อยู่แถวเดียวกันกับปุ่มธง") · hidden ไว้ จอคอมไม่เห็น */}
+                <button type="button" className="btn fbtn msetbtn" hidden onClick={() => setSheet("set")} aria-haspopup="dialog"><Icon name="sliders" size={16} />ตั้งค่า</button>
               </div>
               {/* คำอธิบายปุ่มครบทุกปุ่มของฝั่งนี้ ชื่อปุ่มกับแป้นลัดอยู่คอลัมน์ซ้าย (พี่กันสั่ง 21 ต.ค. 2569 "เขียนคำอธิบายปุ่มให้ครบ" เดิมบอกแค่การเดิน) */}
               <dl className="keyhelp">
-                <dt>เดิน</dt>
-                <dd><Phr>{"ปุ่มลูกศรบนจอ ปุ่มลูกศรบนคีย์บอร์ด หรือ W A S D กดค้างไว้เพื่อเดินต่อเนื่อง หรือลากนิ้วบนเขาวงกต"}</Phr></dd>
-                <dt>เดินย้อน</dt>
-                <dd><Phr>{"เดินย้อนทางเดิม เส้นจะหดตามเอง"}</Phr></dd>
-                <dt>ปักธง<kbd className="kc" aria-hidden="true">F</kbd></dt>
-                <dd><Phr>{"ปักธงไว้ที่ช่องที่ยืนอยู่ ปักที่ช่องอื่นธงจะย้ายไปช่องใหม่"}</Phr></dd>
-                <dt>กลับไปที่ธง<kbd className="kc" aria-hidden="true">R</kbd></dt>
-                <dd><Phr>{"วาร์ปกลับไปที่ธงทันที ไม่นับก้าว"}</Phr></dd>
-                <dt>พักเกม<kbd className="kc" aria-hidden="true" title="Backspace"><Icon name="backspace" size={12} /></kbd></dt>
-                <dd><Phr>{"หยุดเวลาและซ่อนเขาวงกตไว้ กดอีกครั้งเพื่อเล่นต่อ พักได้เมื่อเริ่มเดินแล้ว"}</Phr></dd>
+                {helpList}
               </dl>
             </>
           )}
         </div>
 
         <section className="panel pg-set" aria-label="ตั้งค่าเกม">
+          <div className="msheet-top" hidden><b>ตั้งค่าด่าน</b><button type="button" className="iconbtn" aria-label="ปิดแผ่นนี้" onClick={() => setSheet(null)}><Icon name="x" size={16} /></button></div>
           <h3 className="psech">ตั้งค่าด่าน</h3>
+          {/* สถิติดีสุดย้ายมาไว้ในแผ่นนี้บนมือถือ (หน้าเล่นเกมมีแค่เวลากับก้าว พี่กันสั่ง "มีแค่ปุ่ม วงกต ก้าว เวลา จบ") */}
+          <p className="mbest" hidden><span>สถิติดีสุด</span> <b>{bestT === null ? "ไม่มี" : fmt(bestT)}</b> <span>{bestS === null ? "คะแนนดีสุด ไม่มี" : `คะแนนดีสุด ${bestS}`}</span></p>
           <div>
             <div className="lbl ptitle">ระดับ <b>{LEVELS[prefs.level]} × {LEVELS[prefs.level]} ช่อง</b></div>
             <div className="seg seg4" role="group" aria-label="ระดับ">
@@ -508,12 +599,24 @@ export default function GameView() {
             </button>
           </div>
           <div className="row">
-            <button type="button" className="btn primary" onClick={() => newLevel(prefs)}><Icon name="restart" size={16} />ด่านใหม่</button>
-            <button type="button" className="btn giveup" onClick={doGiveUp} title="ยอมแพ้แล้วดูเฉลย รอบนี้ไม่นับสถิติ"><Icon name="giveup" size={16} />ดูเฉลย</button>
-            <button type="button" className="btn" onClick={toPrint} title="พิมพ์ใบงานด่านนี้ (A4)"><Icon name="print" size={16} />พิมพ์ใบงาน</button>
+            <button type="button" className="btn primary" onClick={() => { setSheet(null); newLevel(prefs); }}><Icon name="restart" size={16} />ด่านใหม่</button>
+            <button type="button" className="btn giveup" onClick={() => { setSheet(null); doGiveUp(); }} title="ยอมแพ้แล้วดูเฉลย รอบนี้ไม่นับสถิติ"><Icon name="giveup" size={16} />ดูเฉลย</button>
+            {/* มือถือซ่อนปุ่มนี้ (พี่กันสั่ง 21 ต.ค. 2569 "ปุ่มพิมพ์ใบงาน เอาออก") */}
+            <button type="button" className="btn printbtn" onClick={toPrint} title="พิมพ์ใบงานด่านนี้ (A4)"><Icon name="print" size={16} />พิมพ์ใบงาน</button>
           </div>
           {/* โน้ตยาวย่อเป็นหัวข้อกดเปิด ไว้ท้ายแผงนี้ซึ่งเลื่อนในตัวเองได้ (พี่กันสั่ง "ไปย่อ แล้วหาที่โน้ตที่อื่น")
               เคยไว้ใต้ปุ่มลูกศร กดเปิดแล้วดันปุ่มลูกศรหลุดจอ พี่กันทัก "ก็บอกว่าห้ามทับปุ่มกด" ข้อความครบเหมือนเดิม */}
+          {/* วิธีเล่นบนมือถือ อยู่ในแผ่นนี้ ข้อความแบบมือถือ สั้น ไม่มีเรื่องคีย์บอร์ด (hidden ไว้ จอคอมเห็นแบบเต็มใต้ปุ่มเดินตามเดิม) */}
+          <div className="mhelp" hidden>
+            <div className="lbl ptitle">วิธีเล่น</div>
+            <dl className="keyhelp">
+              <dt>เดิน</dt><dd><Phr>{"กดปุ่มลูกศร หรือลากนิ้วบนวงกต กดค้างเพื่อเดินต่อ"}</Phr></dd>
+              <dt>เดินย้อน</dt><dd><Phr>{"เดินกลับทางเดิม เส้นจะหดตาม"}</Phr></dd>
+              <dt>ปักธง</dt><dd><Phr>{"ปักที่ช่องที่ยืนอยู่ ปักใหม่ธงย้ายตาม"}</Phr></dd>
+              <dt>กลับธง</dt><dd><Phr>{"วาร์ปกลับไปที่ธง ไม่นับก้าว"}</Phr></dd>
+              <dt>พัก</dt><dd><Phr>{"หยุดเวลาและซ่อนวงกต"}</Phr></dd>
+            </dl>
+          </div>
           <details className="about">
             <summary>วิธีสร้างด่านและวิธีนับคะแนน</summary>
             <ul className="aboutlist">
@@ -527,6 +630,7 @@ export default function GameView() {
           </details>
         </section>
       </div>
+      {sheet && <div className="msheet-back" onClick={() => setSheet(null)} aria-hidden="true" />}
     </div>
   );
 }

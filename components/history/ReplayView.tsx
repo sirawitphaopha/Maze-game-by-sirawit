@@ -8,7 +8,9 @@ import ResultCard from "@/components/game/ResultCard";
 import Icon from "@/components/ui/Icon";
 import { ALGOS, isAlgo } from "@/lib/maze/generators";
 import { LEVEL_IDS, LEVEL_NAME, LOOPS, type Level, type MazeData, type Settings } from "@/lib/game/level";
-import { flagSpots, replay, result, type GameEvent } from "@/lib/game/state";
+import { flagSpots, newGame, replay, replayStep, result, type Game, type GameEvent } from "@/lib/game/state";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { playMem } from "@/lib/session";
 import { solRun, type SolRun } from "@/lib/game/solAnim";
 import { unpackMoves, unpackWalls } from "@/lib/game/encode";
 import { reducedMotion, solFinished } from "@/lib/draw/paint";
@@ -98,6 +100,9 @@ function ReplaySkeleton({ skel }: { skel: boolean }) {
   );
 }
 
+/** เกมที่เล่นซ้ำค้างไว้ของแต่ละบันทึก · ก้าวไปข้างหน้าเล่นต่อจากเดิม ย้อนหลังค่อยเริ่มใหม่ (docs/BUGHUNT-2026-10-21.md ข้อ 25) */
+const runs = new WeakMap<GameEvent[], { g: Game; k: number }>();
+
 function Player({ d }: { d: Ready }) {
   const router = useRouter();
   const { row, settings, maze, events } = d;
@@ -110,9 +115,18 @@ function Player({ d }: { d: Ready }) {
   const sol = useRef<SolRun | null>(null);
   const solRaf = useRef(0);
   const clockRef = useRef(0);
+  const kRef = useRef(0);
+  const autoK = useRef(0);
+  const [askReplay, setAskReplay] = useState(false);
 
-  // เกม ณ เหตุการณ์ที่ k (เล่นซ้ำจากต้นทุกครั้ง เร็วพอสำหรับหลายพันก้าว)
-  const G = useMemo(() => replay(settings, maze, events, k), [settings, maze, events, k]);
+  // เกม ณ เหตุการณ์ที่ k · เล่นต่อจากก้าวก่อน ไม่เล่นจากต้นทุกก้าว (ตัวเกมตัวเดิมแก้ในที่ วาดใหม่ตาม k)
+  const G = useMemo(() => {
+    let r = runs.get(events);
+    if (!r || r.k > k) { r = { g: newGame(settings, maze), k: 0 }; runs.set(events, r); }
+    replayStep(r.g, events, r.k, k);
+    r.k = k;
+    return r.g;
+  }, [settings, maze, events, k]);
   const done = k >= events.length;
   const finalG = useMemo(() => replay(settings, maze, events), [settings, maze, events]);
   const finalR = useMemo(() => result(finalG), [finalG]);
@@ -121,7 +135,7 @@ function Player({ d }: { d: Ready }) {
   // ช่องที่ปักธงแต่ละครั้ง แสดงเฉพาะที่ปักไปแล้วถึงเหตุการณ์ที่ดูอยู่
   const spots = useMemo(() => flagSpots(settings, maze, events), [settings, maze, events]);
   const getView = useCallback(() => ({ G, sol: sol.current, fog: false, markers: G.wrongAt, now: performance.now(), pulse: !reducedMotion(), flagSpots: spots.filter((s) => s.i < k).map((s) => s.pos) }), [G, spots, k]);
-  useEffect(() => { board.current?.draw(); }, [G]);
+  useEffect(() => { board.current?.draw(); }, [G, k]);
 
   // ลูกศรทางเข้าออกกะพริบขึ้นลงเหมือนหน้าเล่นเกมกับห้องทดลอง (พี่กันสั่ง 21 ต.ค. 2569 "ต้องทุกหน้า")
   // วาดซ้ำราว 20 ครั้งต่อวินาทีเฉพาะตอนเห็นหน้า · ดูย้อนจนถึงทางออกแล้วลูกศรนิ่งเหมือนตอนชนะในหน้าเล่นเกม
@@ -137,22 +151,28 @@ function Player({ d }: { d: Ready }) {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // ลากแถบหรือกดกลับไปจุดเริ่ม = ตั้งนาฬิกาเล่นให้ตรงก้าวนั้น · ก้าวที่นาฬิกาเดินเองไม่ตั้งซ้ำ
+  useEffect(() => {
+    kRef.current = k;
+    if (k !== autoK.current) { clockRef.current = k === 0 ? 0 : events[k - 1].t; autoK.current = k; }
+  }, [k, events]);
+
   // เดินตามเวลา · เวลาเล่นจริงคูณความเร็ว
+  // นาฬิกาเดินต่อเนื่องไม่ผูกกับก้าว (เดิมเริ่มนับใหม่ทุกก้าว เวลาที่เลยไปในเฟรมนั้นหาย เล่นช้ากว่าจริง กด 8× ได้จริงแค่ 3 ถึง 6 เท่า docs/BUGHUNT-2026-10-21.md ข้อ 25)
   useEffect(() => {
     if (!playingNow || done) return;
     let raf = 0, last = performance.now();
-    clockRef.current = tNow;
     const tick = (now: number) => {
       clockRef.current += (now - last) * speed;
       last = now;
-      let nk = k;
+      let nk = kRef.current;
       while (nk < events.length && events[nk].t <= clockRef.current) nk++;
-      if (nk !== k) { setK(nk); return; }
-      raf = requestAnimationFrame(tick);
+      if (nk !== kRef.current) { kRef.current = nk; autoK.current = nk; setK(nk); }
+      if (nk < events.length) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playingNow, done, k, speed, events, tNow]);
+  }, [playingNow, done, speed, events]);
 
   const stopSol = () => { if (solRaf.current) cancelAnimationFrame(solRaf.current); solRaf.current = 0; sol.current = null; };
   useEffect(() => () => { if (solRaf.current) cancelAnimationFrame(solRaf.current); }, []);
@@ -234,12 +254,23 @@ function Player({ d }: { d: Ready }) {
           <ResultCard G={finalG} r={finalR} title="ผลของเกมนี้" markersNote>
             <div className="acts">
               <button type="button" className="btn solbtn" aria-pressed={solOn} onClick={toggleSol}><Icon name="eye" size={16} />{solOn ? "ซ่อนเฉลย" : "ดูเฉลยเทียบ"}</button>
-              <button type="button" className="btn primary" onClick={() => router.push(`/play?from=${row.id}`)}><Icon name="restart" size={16} />เล่นด่านนี้อีกรอบ</button>
-              <button type="button" className="btn" onClick={() => router.push(`/print?from=${row.id}`)}><Icon name="print" size={16} />พิมพ์ใบงานด่านนี้ (A4)</button>
+              <button type="button" className="btn primary" onClick={() => { if (playMem.G?.status === "play") setAskReplay(true); else router.push(`/play?from=${row.id}`); }}><Icon name="restart" size={16} />เล่นด่านนี้อีกรอบ</button>
+              <button type="button" className="btn printbtn" onClick={() => router.push(`/print?from=${row.id}`)}><Icon name="print" size={16} />พิมพ์ใบงานด่านนี้ (A4)</button>
             </div>
           </ResultCard>
         </div>
       </div>
+      {/* มีเกมเล่นค้างอยู่ในแท็บเล่นเกม ถามก่อนแทนที่ (เดิมเกมที่ค้างหายเงียบ ทั้งที่ป๊อปตอนออกบอกว่ากลับมาเล่นต่อได้ docs/BUGHUNT-2026-10-21.md ข้อ 29) */}
+      {askReplay && (
+        <ConfirmDialog
+          title="มีเกมที่เล่นค้างอยู่ ต้องการเริ่มด่านนี้แทนหรือไม่"
+          lines={["เกมที่เล่นค้างจะหายและไม่บันทึก", "ถ้าต้องการเล่นเกมเดิมต่อ กดยกเลิกแล้วไปที่แท็บเล่นเกม"]}
+          confirmLabel="เริ่มด่านนี้"
+          cancelLabel="ยกเลิก"
+          onConfirm={() => { setAskReplay(false); router.push(`/play?from=${row.id}`); }}
+          onCancel={() => setAskReplay(false)}
+        />
+      )}
     </div>
   );
 }

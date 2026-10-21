@@ -22,6 +22,18 @@ type Props = {
 
 export default function ConfirmDialog({ title, lines, confirmLabel, cancelLabel, busy, busyLabel, dangerLeft, onConfirm, onCancel }: Props) {
   const cancelRef = useRef<HTMLButtonElement | null>(null);
+  const backRef = useRef<HTMLDivElement | null>(null);
+  // จำปุ่มที่เปิดป๊อป คืนโฟกัสให้ตอนปิด · ระหว่างเปิด ของข้างหลังพื้นมืดกด Tab ไปไม่ถึง (inert)
+  // เดิมปิดแล้วโฟกัสหลุดไปบนสุดของหน้า และกด Tab เลยไปโดนลิงก์ข้างหลังได้ (docs/BUGHUNT-2026-10-21.md ข้อ 28)
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const others = [...document.body.children].filter((el) => el !== backRef.current && !el.hasAttribute("inert"));
+    others.forEach((el) => el.setAttribute("inert", ""));
+    return () => {
+      others.forEach((el) => el.removeAttribute("inert"));
+      if (opener && opener.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
   useEffect(() => { cancelRef.current?.focus(); }, [title]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onCancel(); };
@@ -37,7 +49,7 @@ export default function ConfirmDialog({ title, lines, confirmLabel, cancelLabel,
   );
   // วาดไว้ใต้ body เสมอ ป๊อปที่เปิดจากแถบบน (ถามก่อนออกจากหน้าเล่นเกม) ไม่โดนกรอบของแถบบนตัดจนหัวข้อหายพ้นจอ
   return createPortal(
-    <div className="cdback" role="presentation">
+    <div className="cdback" role="presentation" ref={backRef}>
       <div className="cdbox" role="alertdialog" aria-modal="true" aria-labelledby="cd-title" aria-describedby="cd-desc">
         <h3 id="cd-title">{title}</h3>
         <div id="cd-desc">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>

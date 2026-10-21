@@ -159,7 +159,7 @@ export default function LabView() {
       R: new Uint8Array(N).fill(b.g.open ? 0 : 1), B: new Uint8Array(N).fill(b.g.open ? 0 : 1),
       vis: new Uint8Array(N), front: new Uint8Array(N), cur: -1, wk: [], hunt: -1, room: null, par, sz, i: 0, done: false,
     };
-    setStats({ dead: deadEnds(n, b.fin.R, b.fin.B, b.ex), len: b.path.length, ch: countChoices(n, b.fin.R, b.fin.B, b.path, L), short: shortStubs(n, b.fin.R, b.fin.B, L) });
+    setStats({ dead: deadEnds(n, b.fin.R, b.fin.B, b.ex), len: b.path.length, ch: countChoices(n, b.fin.R, b.fin.B, b.path, L), short: shortStubs(n, b.fin.R, b.fin.B, L, b.ex) });
     const m: Msg[] = [];
     if (tries > 1) m.push({ pre: `สุ่มแล้ว ${th(done)} รอบ${done < tries ? " (หยุดก่อนเพราะวิธีนี้ใช้เวลานาน)" : ""} เส้นทางเฉลยเฉลี่ย ${th(sum / done)} ช่อง เก็บอันที่ยาวสุดไว้ `, bold: th(b.path.length), post: " ช่อง" });
     if (b.moved) m.push({ pre: "เก็บกวาดทางตันสั้นไป ", bold: th(b.moved), post: " จุด โดยย้ายไปต่อเป็นทางหลอกที่ยาวขึ้น" });

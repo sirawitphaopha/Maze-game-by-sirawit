@@ -293,6 +293,32 @@ export const EN: Record<string, string> = {
   "ต้องการลบวงกตนี้ออกจากประวัติหรือไม่": "Delete this maze from your history?",
   "ลบแล้ววงกตนี้จะหายจากหน้าประวัติ": "It will no longer appear in your history.",
   "ยกเลิก": "Cancel",
+  // รายงานหาบั๊ก 21 ต.ค. 2569
+  "ยังไม่ได้เข้าสู่ระบบ": "You're not signed in.",
+  "กำลังเปิดด่าน": "Opening the maze",
+  "ระบบขัดข้องชั่วคราว ลองใหม่ภายหลัง": "The server is having trouble right now. Try again later.",
+  "บันทึกเกมก่อนหน้าเข้าระบบแล้ว": "Your previous game was saved",
+  "บันทึกเกมก่อนหน้าไม่สำเร็จ ข้อมูลยังไม่เข้าระบบ": "Your previous game couldn't be saved. It's not in the system.",
+  "ขนาดตารางไม่ตรงกับระดับ": "The grid size doesn't match the level.",
+  "มีเกมที่เล่นค้างอยู่ ต้องการเริ่มด่านนี้แทนหรือไม่": "You have a game in progress. Start this maze instead?",
+  "เกมที่เล่นค้างจะหายและไม่บันทึก": "The game in progress will be lost and won't be saved.",
+  "ถ้าต้องการเล่นเกมเดิมต่อ กดยกเลิกแล้วไปที่แท็บเล่นเกม": "To keep playing it, press Cancel and go to the Play tab.",
+  "เริ่มด่านนี้": "Start this maze",
+  // มือถือ 21 ต.ค. 2569 ดึก
+  "เลือกแท็บ": "Menu",
+  "เริ่มเกม": "Start",
+  "วิธีเล่น": "How to play",
+  "ปิดแผ่นนี้": "Close",
+  "กลับธง": "To flag",
+  "พัก": "Pause",
+  "ตั้งค่า": "Settings",
+  "เล่นซ้ำ": "Replay",
+  "100 คะแนน": "Perfect 100",
+  "กดปุ่มลูกศร หรือลากนิ้วบนวงกต กดค้างเพื่อเดินต่อ": "Tap the arrows or drag on the maze. Hold to keep moving.",
+  "เดินกลับทางเดิม เส้นจะหดตาม": "Walk back the way you came and your trail shrinks.",
+  "ปักที่ช่องที่ยืนอยู่ ปักใหม่ธงย้ายตาม": "Drops a flag where you stand. Plant again to move it.",
+  "วาร์ปกลับไปที่ธง ไม่นับก้าว": "Jumps back to your flag. No steps counted.",
+  "หยุดเวลาและซ่อนวงกต": "Stops the clock and hides the maze.",
   "ยืนยันการลบวงกตนี้อีกครั้ง": "Are you sure you want to delete this maze?",
   "บนเว็บกู้คืนไม่ได้ กู้ได้ที่ฐานข้อมูลเท่านั้น": "This can't be undone on the site. It can only be restored from the database.",
   "ยืนยันลบ": "Delete",
@@ -523,6 +549,8 @@ export const EN_RX: [RegExp, Out][] = [
   // แถบรอส่ง
   [/^ส่งเข้าระบบแล้ว ([\d,]+) เกม$/, (m) => `${m[1]} ${m[1] === "1" ? "game" : "games"} saved`],
   [/^และอีก ([\d,]+) เกม$/, (m) => `and ${m[1]} more`],
+  // ชื่อเกมในแถบรอส่ง "กลาง Wilson 90 คะแนน 0:01.9" (เดิมไม่มีรูปแบบ ขึ้นไทย ข้อ 16)
+  [/^(ง่าย|กลาง|ยาก|โหด) (.+) ([\d]+) คะแนน ([\d:.]+)$/, (m) => `${LEVEL[m[1]]} · ${m[2]} · ${m[3]} ${m[3] === "1" ? "point" : "points"} · ${m[4]}`],
   [/^(.+) และเครื่องนี้เก็บเกมไว้ให้ไม่ได้ \(ที่เก็บของเบราว์เซอร์เต็มหรือถูกปิด\)$/, (m) => `${en(m[1])}, and this device couldn't keep a copy (browser storage is full or turned off)`],
   // หน้าเล่นเกม
   [/^คะแนนดีสุด (\d+)$/, (m) => `Best score ${m[1]}`],
@@ -539,7 +567,8 @@ export const EN_RX: [RegExp, Out][] = [
   // ตัวดูย้อน
   [/^จุดแดงคือช่องที่เลี้ยวออกจากทางถูก ([\d,]+) ครั้งถึงตอนนี้$/, (m) => `Red dots mark wrong turns: ${m[1]} so far.`],
   // หน้าประวัติ
-  [/^([\d,]+) ช่อง ทางวน(.*)$/, (m) => `${m[1]} cells, loops ${LOOP[m[2].trim()] ?? m[2].trim()}`],
+  // เกมโหมดไฟฉายต่อท้ายด้วย " ไฟฉาย" (เดิมรูปแบบไม่รับ แปลครึ่งเดียว docs/BUGHUNT-2026-10-21.md ข้อ 7)
+  [/^([\d,]+) ช่อง ทางวน(\S+)( ไฟฉาย)?$/, (m) => `${m[1]} cells, loops ${LOOP[m[2]] ?? m[2]}${m[3] ? ", flashlight" : ""}`],
   [/^ลบวงกตที่เล่นวันที่ (.+) แล้ว$/, (m) => `Deleted the maze from ${en(m[1])}`],
   [/^ลบวงกตที่เล่นวันที่ (.+)$/, (m) => `Delete the maze from ${en(m[1])}`],
   [/^เล่นวันที่ (.+)$/, (m) => `Played ${en(m[1])}`],

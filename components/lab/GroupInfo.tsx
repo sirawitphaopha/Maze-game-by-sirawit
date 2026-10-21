@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ALGOS, GROUPS, generate, type AlgoId, type GroupId } from "@/lib/maze/generators";
 import { build, openNb } from "@/lib/maze/grid";
 
@@ -50,9 +50,11 @@ const seg = (a: number, b: number) => {
   return Math.abs(b - a) === 1 ? `M${x + C} ${y}V${y + C}` : `M${x} ${y + C}H${x + C}`;
 };
 
-/** เขาวงกตตัวอย่างแบบเส้น SVG พร้อมไฮไลต์นิสัยของกลุ่ม */
-function MiniMaze({ algo, mark }: { algo: AlgoId; mark: Mark }) {
-  const pic = useMemo(() => {
+/** ภาพตัวอย่างที่สร้างแล้วของแต่ละวิธี · จำไว้ระดับไฟล์ ชี้ซ้ำได้ภาพเดิม
+    (เดิมจำด้วย useMemo ในป๊อปที่ถูกถอดทุกครั้งที่เมาส์ออก ชี้ใหม่ได้ภาพใหม่ docs/BUGHUNT-2026-10-21.md ข้อ 26) */
+const PICS = new Map<AlgoId, ReturnType<typeof makePic>>();
+
+function makePic(algo: AlgoId) {
     const g = generate(N, algo), w = build(N, g), E = PAD + N * C, mid = N >> 1, s = mid, e = N * (N - 1) + mid;
     let walls = "";
     for (let c = 0; c < N * N; c++) {
@@ -88,6 +90,14 @@ function MiniMaze({ algo, mark }: { algo: AlgoId; mark: Mark }) {
       else if (room <= 3) split2 += seg(o[1] as number, o[2] as number);
     }
     return { walls, pathD, dead, edges, tx, ty, split1, split2 };
+}
+
+/** เขาวงกตตัวอย่างแบบเส้น SVG พร้อมไฮไลต์นิสัยของกลุ่ม */
+function MiniMaze({ algo, mark }: { algo: AlgoId; mark: Mark }) {
+  const pic = useMemo(() => {
+    let p = PICS.get(algo);
+    if (!p) { p = makePic(algo); PICS.set(algo, p); }
+    return p;
   }, [algo]);
   const S = N * C + PAD * 2, mid = PAD + (N * C) / 2;
   return (
@@ -111,6 +121,18 @@ function MiniMaze({ algo, mark }: { algo: AlgoId; mark: Mark }) {
 export default function GroupLabel({ g }: { g: GroupId }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const info = INFO[g];
+  // ป๊อปยึดตำแหน่งกับจอ เลื่อนแผงแล้วลอยค้างผิดที่ จึงปิดตอนเลื่อน · กด Esc ปิดได้ (WCAG 1.4.13 · docs/BUGHUNT-2026-10-21.md ข้อ 34)
+  useEffect(() => {
+    if (!at) return;
+    const close = () => setAt(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    // แตะที่อื่นแล้วปิด (มือถือแตะที่ว่างแล้วโฟกัสไม่หลุด ป๊อปค้าง พี่กันทัก 21 ต.ค. 2569)
+    const onDown = (e: PointerEvent) => { if (!(e.target instanceof Element) || !e.target.closest(".glabel, .ginfo")) close(); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("scroll", close, true);
+    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("pointerdown", onDown); window.removeEventListener("scroll", close, true); };
+  }, [at]);
   const show = (el: HTMLElement) => {
     const r = el.getBoundingClientRect(), W = 300, H = 380;
     setAt({ x: Math.min(r.right + 12, innerWidth - W - 8), y: Math.max(8, Math.min(r.top - 10, innerHeight - H - 8)) });

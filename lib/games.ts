@@ -105,7 +105,11 @@ const KEY = "maze-pending-v1";
 const EVT = "maze-pending-changed";
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-export interface PendingItem { rec: GameRecord; at: number; tries: number; why: string }
+/** sendingUntil = หน้าเล่นเกมกำลังส่งรอบแรกอยู่ ถึงเวลานี้ แถบรอส่งยังไม่ต้องแสดงหรือส่งซ้ำ (หน้าปิดกลางทาง หมดเวลาแล้วกลายเป็นรายการรอส่งปกติ) */
+export interface PendingItem { rec: GameRecord; at: number; tries: number; why: string; sendingUntil?: number }
+
+/** รายการที่แถบรอส่งต้องดูแล (ไม่รวมเกมที่หน้าเล่นเกมกำลังส่งรอบแรก) */
+export const isWaiting = (x: PendingItem, now = Date.now()) => !(x.sendingUntil && x.sendingUntil > now);
 
 function read(): PendingItem[] {
   if (typeof window === "undefined") return [];
@@ -151,9 +155,9 @@ export function subscribePending(cb: () => void): () => void {
   return () => { window.removeEventListener(EVT, cb); window.removeEventListener("storage", cb); };
 }
 
-function queue(rec: GameRecord, why: string): boolean {
+function queue(rec: GameRecord, why: string, sendingUntil?: number): boolean {
   const list = read().filter((x) => x.rec.saveKey !== rec.saveKey);
-  list.push({ rec, at: Date.now(), tries: 0, why });
+  list.push({ rec, at: Date.now(), tries: 0, why, ...(sendingUntil ? { sendingUntil } : {}) });
   return write(list);
 }
 
@@ -168,6 +172,7 @@ function reasonOf(r: Exclude<Ask<unknown>, { ok: true }>): string {
   if (r.why === "offline") return "เชื่อมต่อระบบไม่สำเร็จ";
   if (r.why === "timeout") return "ระบบตอบช้าเกินกำหนด";
   if (r.why === "auth") return "ต้องเข้าสู่ระบบใหม่";
+  if (r.why === "busy") return r.error || "ระบบขัดข้องชั่วคราว ลองใหม่ภายหลัง";
   return r.error || "ระบบปฏิเสธข้อมูล";
 }
 
@@ -179,16 +184,25 @@ const bodyOf = (rec: GameRecord) => {
 
 export type UploadResult = { ok: true; id: string } | { ok: false; queued: boolean; reason: string };
 
-/** ส่งหนึ่งเกมขึ้นฐาน · ไม่ถึงเพราะเชื่อมต่อ ฐานยังไม่ตั้งค่า หรือบัตรผ่านหมดอายุ = เก็บไว้ในเครื่อง */
+const SEND_WAIT_MS = 9000;
+const retryable = (w: string) => w === "offline" || w === "timeout" || w === "busy" || w === "nodb" || w === "auth";
+
+/** ส่งหนึ่งเกมขึ้นฐาน · ไม่ถึงเพราะเชื่อมต่อ ระบบขัดข้อง ฐานยังไม่ตั้งค่า หรือบัตรผ่านหมดอายุ = เก็บไว้ในเครื่อง
+    🔴 เก็บลงเครื่องก่อนส่ง (docs/BUGHUNT-2026-10-21.md ข้อ 3) · เดิมเก็บหลังส่งไม่สำเร็จครบ 3 รอบ รอบละ 20 วินาที
+       ระหว่าง 61.5 วินาทีนั้นเกมอยู่แค่ในหน่วยความจำ ปิดหน้าแล้วเกมหายเงียบ · ตอนนี้รอบละ 9 วินาทีตามสกิล offline-resilience
+       ส่งสำเร็จค่อยลบออกจากคิว · หน้าปิดกลางทาง เปิดใหม่แถบรอส่งส่งให้เอง (รหัสก้อนเดิม เซิร์ฟเวอร์กันซ้ำ) */
 export async function uploadGame(rec: GameRecord): Promise<UploadResult> {
-  const r = await askServer<{ ok: true; id: string }>("/api/games", bodyOf(rec), { waitMs: 20000, retry: 3 });
+  const rounds = 3, until = Date.now() + rounds * SEND_WAIT_MS + 5000;
+  const kept = queue(rec, "กำลังส่งรอบแรก", until);
+  const r = await askServer<{ ok: true; id: string }>("/api/games", bodyOf(rec), { waitMs: SEND_WAIT_MS, retry: rounds });
   if (r.ok) { drop(rec.saveKey); forgetLists(); return { ok: true, id: r.data.id }; }
   const reason = reasonOf(r);
-  if (r.why === "offline" || r.why === "timeout" || r.why === "nodb" || r.why === "auth") {
+  if (retryable(r.why)) {
     // ตรวจทานรอบท้าย 21 ต.ค. 2569 · เดิมไม่ดูผลการเก็บ เก็บไม่ได้ก็ยังบอกว่า "บันทึกไว้ในเครื่องแล้ว" (สกิล save-status)
-    if (queue(rec, reason)) return { ok: false, queued: true, reason };
+    if (kept && queue(rec, reason)) return { ok: false, queued: true, reason };
     return { ok: false, queued: false, reason: `${reason} และเครื่องนี้เก็บเกมไว้ให้ไม่ได้ (ที่เก็บของเบราว์เซอร์เต็มหรือถูกปิด)` };
   }
+  drop(rec.saveKey);
   return { ok: false, queued: false, reason };
 }
 
@@ -198,11 +212,11 @@ export interface FlushResult { sent: number; failed: number; rejected: Array<{ l
 export async function flushPending(): Promise<FlushResult> {
   let sent = 0, failed = 0;
   const rejected: Array<{ label: string; reason: string }> = [];
-  for (const item of read()) {
-    const r = await askServer<{ ok: true; id: string }>("/api/games", bodyOf(item.rec), { waitMs: 20000 });
+  for (const item of read().filter((x) => isWaiting(x))) {
+    const r = await askServer<{ ok: true; id: string }>("/api/games", bodyOf(item.rec), { waitMs: SEND_WAIT_MS });
     if (r.ok) { drop(item.rec.saveKey); forgetLists(); sent++; continue; }
     const reason = reasonOf(r);
-    if (r.why === "offline" || r.why === "timeout" || r.why === "nodb" || r.why === "auth") {
+    if (retryable(r.why)) {
       write(read().map((x) => (x.rec.saveKey === item.rec.saveKey ? { ...x, tries: x.tries + 1, why: reason } : x)));
       failed++;
       if (r.why !== "offline" && r.why !== "timeout") break;

@@ -2,10 +2,11 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { dbConfigured, supabaseAdmin, TABLES } from "@/lib/supabaseAdmin";
 import { isAlgo } from "@/lib/maze/generators";
-import { LEVEL_IDS, LV_MAXL, mazeStats } from "@/lib/game/level";
+import { LEVEL_IDS, LEVELS, LV_MAXL, mazeStats } from "@/lib/game/level";
 import type { Level, Settings } from "@/lib/game/level";
 import { replay, result } from "@/lib/game/state";
-import { unpackMoves, unpackWalls } from "@/lib/game/encode";
+import { packWalls, unpackMoves, unpackWalls } from "@/lib/game/encode";
+import { distFrom } from "@/lib/maze/grid";
 
 /* ============================================================
    ตัวช่วยของเส้นทางหลังบ้าน /api/games (ยกโครงจาก city-lab lib/server/cloudRows.ts)
@@ -24,8 +25,9 @@ export function bad(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
 }
 
+/** ติดป้าย nodb ให้หน้าเว็บแยกออกจาก 503 อื่น (ประตูยังไม่ตั้งรหัส · Cloudflare ขัดข้อง) · docs/BUGHUNT-2026-10-21.md ข้อ 10 */
 export function noDb() {
-  return bad("ยังไม่ได้ตั้งค่าเชื่อมฐานข้อมูล", 503);
+  return NextResponse.json({ error: "ยังไม่ได้ตั้งค่าเชื่อมฐานข้อมูล", nodb: true }, { status: 503 });
 }
 
 export function dbFail(where: string, detail: unknown, message = "ฐานข้อมูลไม่ตอบกลับ ลองใหม่ภายหลัง") {
@@ -46,6 +48,12 @@ export async function readBody(req: Request): Promise<{ body: Record<string, unk
   return { res: bad("ข้อมูลที่ส่งมาไม่ใช่ JSON") };
 }
 
+/** เพดานของบันทึกการเดิน · เกมจริงยาวสุดที่จดไว้ราว 3,100 ก้าว ตั้งเผื่อไว้มาก แต่กันบันทึกปลอมที่ยาวจนเซิร์ฟเวอร์คิดนาน */
+const MAX_EVENTS = 50000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** เผื่อนาฬิกาเครื่องผู้เล่นเดินเร็วกว่าเซิร์ฟเวอร์ */
+const CLOCK_SKEW_MS = 10 * 60 * 1000;
+
 const str = (v: unknown, max: number): string | null => (typeof v === "string" && v.length <= max ? v : null);
 const int = (v: unknown, lo: number, hi: number): number | null => (typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi ? v : null);
 
@@ -54,7 +62,8 @@ export function gameRow(b: Record<string, unknown>): { row: Record<string, unkno
   const saveKey = str(b.saveKey, 64);
   if (!saveKey || !UUID.test(saveKey)) return { error: "รหัสก้อนการบันทึกไม่ถูกต้อง" };
   const playedAt = str(b.playedAt, 40);
-  if (!playedAt || Number.isNaN(Date.parse(playedAt))) return { error: "เวลาที่เล่นจบไม่ถูกต้อง" };
+  // ปีอนาคตจะค้างบนสุดของหน้าประวัติตลอด (docs/BUGHUNT-2026-10-21.md ข้อ 12)
+  if (!playedAt || Number.isNaN(Date.parse(playedAt)) || Date.parse(playedAt) > Date.now() + CLOCK_SKEW_MS) return { error: "เวลาที่เล่นจบไม่ถูกต้อง" };
   const appVersion = str(b.appVersion, 20);
   if (!appVersion) return { error: "ไม่มีรุ่นของเกม" };
   const level = str(b.level, 8);
@@ -69,11 +78,17 @@ export function gameRow(b: Record<string, unknown>): { row: Record<string, unkno
   const size = int(b.size, 5, 60), exitX = int(b.exitX, 0, 59);
   const walls = str(b.walls, 2000), moves = str(b.moves, 200000);
   if (size === null || exitX === null || !walls || moves === null) return { error: "ผังด่านหรือบันทึกการเดินไม่ครบ" };
+  // ระดับมีขนาดตายตัว · เดิมรับ 5 ถึง 60 ทุกระดับ ระดับง่ายขนาด 60 × 60 ก็ผ่าน (docs/BUGHUNT-2026-10-21.md ข้อ 12)
+  if (size !== LEVELS[level as Level]) return { error: "ขนาดตารางไม่ตรงกับระดับ" };
   const maze = unpackWalls(size, exitX, walls);
-  if (!maze) return { error: "ผังกำแพงเสีย" };
+  // ผังต้องเป็นแบบที่ตัวแพ็กสร้างพอดี (ไม่มีตัวอักษรเกินท้าย) และเดินจากทางเข้าถึงทุกช่อง
+  // เดิมผังที่ทางออกไปไม่ถึงทำให้เซิร์ฟเวอร์วนไม่จบ (ข้อ 1) ช่องปิดตายทำให้นับทางวนติดลบแล้วฐานตอบ 500 (ข้อ 12)
+  if (!maze || packWalls(maze) !== walls || distFrom(size, maze.R, maze.B, size >> 1).some((d) => d < 0)) return { error: "ผังกำแพงเสีย" };
   const events = unpackMoves(moves);
-  if (!events || events.length === 0) return { error: "บันทึกการเดินเสีย" };
-  const timeMs = int(b.timeMs, 0, 24 * 60 * 60 * 1000);
+  if (!events || events.length === 0 || events.length > MAX_EVENTS) return { error: "บันทึกการเดินเสีย" };
+  // เวลาก้าวสุดท้ายต้องไม่เกินเพดานเดียวกับเวลาที่ใช้ · เดิมไม่มีเพดาน เกินจำนวนเต็มของฐานแล้วได้ 500 (ข้อ 12)
+  if (events[events.length - 1].t > DAY_MS) return { error: "บันทึกการเดินเสีย" };
+  const timeMs = int(b.timeMs, 0, DAY_MS);
   if (timeMs === null) return { error: "เวลาที่ใช้ไม่ถูกต้อง" };
   let replayOf: string | null = null;
   if (b.replayOf !== undefined && b.replayOf !== null) {
