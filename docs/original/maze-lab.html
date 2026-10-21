@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important}img{max-width:100%}body{margin:0}</style>
+<title>ห้องทดลองเขาวงกต</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: lab bench, controls and notes on the left, the maze sheet on the right; stacks on phones */
+:root{
+  --paper:#EEF1F5; --surface:#FFFFFF; --ink:#16202E; --muted:#5A6577; --line:#D6DCE5;
+  --accent:#2F5BD3; --accent-soft:#E3EAFB; --path:#E0367A; --visit:#DCE6FB; --front:#F6C945; --cur:#2F5BD3; --fog:#1A2230; --wrong:#F8D3DB; --b1:#1D9E75; --b2:#D9901A; --b3:#7F77DD; --b4:#639922;
+  --hunt:#C9D8FB; --room:#D9F1E6; --set-s:65%; --set-l:80%;
+  --f-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0E131B; --surface:#161D28; --ink:#E6EBF2; --muted:#98A3B4; --line:#2A3342;
+  --accent:#86A6FF; --accent-soft:#1D2A47; --path:#FF5E9C; --visit:#1C2A47; --front:#8C6A14; --cur:#86A6FF; --fog:#04070B; --wrong:#4C1F2D; --b1:#5DCAA5; --b2:#EF9F27; --b3:#AFA9EC; --b4:#97C459; --hunt:#27386A; --room:#173A30; --set-s:42%; --set-l:30%; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E131B; --surface:#161D28; --ink:#E6EBF2; --muted:#98A3B4; --line:#2A3342;
+  --accent:#86A6FF; --accent-soft:#1D2A47; --path:#FF5E9C; --visit:#1C2A47; --front:#8C6A14; --cur:#86A6FF; --fog:#04070B; --wrong:#4C1F2D; --b1:#5DCAA5; --b2:#EF9F27; --b3:#AFA9EC; --b4:#97C459; --hunt:#27386A; --room:#173A30; --set-s:42%; --set-l:30%; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,4vw,36px);line-height:1.2;margin:0;text-wrap:balance;letter-spacing:.01em}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}.sheet{order:-1}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.lbl{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lbl b{font-family:var(--f-mono);font-weight:500;color:var(--ink);font-size:14px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:6px}
+.seg button{font:inherit;font-family:var(--f-display);font-weight:500;font-size:15px;padding:9px 4px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.seg button:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:500;flex:1 1 120px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.chk input{accent-color:var(--accent);width:18px;height:18px}
+.tune{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:12px}
+.tuneh{font-family:var(--f-display);font-weight:600;font-size:16px}
+.pick{font-size:13px;color:var(--muted);margin:0;text-align:center}
+.pick b{color:var(--path);font-family:var(--f-mono);font-weight:500}
+.note{border-top:1px solid var(--line);padding-top:14px}
+.note h2{font-family:var(--f-display);font-weight:600;font-size:18px;margin:0 0 4px}
+.note p{margin:0;font-size:14px;color:var(--ink)}
+.note .trait{margin-top:8px;font-size:13px;color:var(--muted)}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+canvas{display:block;width:100%;max-width:640px;aspect-ratio:1;margin:0 auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.algos{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.agroup{display:flex;flex-direction:column;gap:5px}
+.agroup>span{font-size:12px;color:var(--muted);letter-spacing:.02em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-family:var(--f-display);font-weight:500;font-size:14px;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.chip:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.params{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:12px}
+select{font:inherit;font-size:14px;width:100%;margin-top:6px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.ends{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.sw.sets{background:conic-gradient(#F2A98B 0 25%,#9BD6B4 0 50%,#9DB8F2 0 75%,#D8A6E6 0)}
+.stat{background:var(--paper);border-radius:8px;padding:10px 12px;min-width:0}
+.stat .k{font-size:12px;color:var(--muted);line-height:1.35}
+.stat .v{font-family:var(--f-mono);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums}
+@media (max-width:420px){.stat .v{font-size:18px}}
+.compare{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.compare h2{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0}
+.compare .sub{font-size:13px;color:var(--muted);margin:-10px 0 0}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.metric h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.bar{display:grid;grid-template-columns:86px minmax(0,1fr) 46px;align-items:center;gap:8px;font-size:13px;margin-bottom:6px}
+.bar .n{font-family:var(--f-display);font-weight:500}
+.bar .t{height:14px;background:var(--paper);border-radius:4px;overflow:hidden}
+.bar .f{height:100%;background:var(--accent);border-radius:4px;transition:width .4s ease}
+.bar.cur .f{background:var(--path)}
+.bar .val{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.foot{font-size:13px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){.bar .f{transition:none}}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{font:inherit;font-family:var(--f-display);font-weight:500;font-size:17px;padding:8px 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.view{display:flex;flex-direction:column;gap:20px}
+.pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:20px;align-items:start}
+@media (max-width:820px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+.seg4{grid-template-columns:repeat(4,1fr)}
+.hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hud div,.wstats div{background:var(--paper);border-radius:8px;padding:8px 12px;min-width:0}
+.hud .k,.wstats .k{display:block;font-size:12px;color:var(--muted)}
+.hud b,.wstats b{font-family:var(--f-mono);font-weight:500;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:420px){.hud b{font-size:16px}}
+.status{font-size:13px;color:var(--muted);margin:0;text-align:center;min-height:1.6em}
+.stage{position:relative;width:100%;max-width:640px;margin:0 auto}
+#gcv{touch-action:none;outline:none;cursor:pointer}
+#gcv:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.win{display:flex;justify-content:center}
+.wincard{border:1.5px solid var(--accent);border-radius:12px;padding:16px;width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px}
+.whead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wincard h2{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0;text-wrap:balance}
+.score{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.snum b{font-family:var(--f-display);font-weight:600;font-size:64px;line-height:.9;color:var(--accent);font-variant-numeric:tabular-nums}
+.snum span{font-family:var(--f-mono);font-size:18px;color:var(--muted);margin-left:4px}
+.sgrade{display:flex;flex-direction:column;min-width:0;padding-bottom:4px}
+.sgrade .k{font-size:12px;color:var(--muted)}
+.sgrade b{font-size:17px;font-weight:600}
+.meter{height:10px;border-radius:99px;background:var(--paper);overflow:hidden}
+.mfill{height:100%;width:0;border-radius:99px;background:var(--accent);transition:width .6s ease}
+.wnote{margin:0;font-size:13px;color:var(--muted)}
+.wnote i{display:inline-block;width:11px;height:11px;border-radius:3px;background:var(--wrong);vertical-align:-1px;margin-right:4px}
+.wstats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (prefers-reduced-motion:reduce){.mfill{transition:none}}
+.pill{background:var(--path);color:var(--surface);font-size:12px;font-weight:600;padding:2px 10px;border-radius:99px}
+.dpad{display:grid;grid-template-columns:repeat(3,min(92px,27vw));grid-template-rows:repeat(3,min(80px,23vw));gap:10px;justify-content:center;padding-block:4px}
+.dbtn{font-size:30px;border:1.5px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.dbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.dpad{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.dbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:13px;color:var(--muted);text-align:center;margin:0}
+.flagrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:340px;margin:0 auto}
+.fbtn{min-height:58px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation}
+.flagico{width:14px;height:18px;border-left:2.5px solid var(--ink);position:relative;flex:none}
+.flagico::after{content:"";position:absolute;left:0;top:1px;border-left:11px solid var(--front);border-top:5.5px solid transparent;border-bottom:5.5px solid transparent}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ห้องทดลองเขาวงกต</h1>
+    <p>ดู 11 วิธีสร้างเขาวงกตทำงานทีละขั้น ปรับนิสัยของแต่ละวิธีได้ แล้วลองเดินเองในแท็บเล่นเกม</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="โหมด">
+    <button class="tab" id="tabLab" role="tab" aria-selected="true" data-v="lab">ห้องทดลอง</button>
+    <button class="tab" id="tabPlay" role="tab" aria-selected="false" data-v="play">เล่นเกม</button>
+  </nav>
+
+  <div id="viewLab" class="view">
+  <div class="grid">
+    <section class="panel" aria-label="ตัวควบคุม">
+      <div>
+        <div class="lbl">วิธีสร้าง</div>
+        <div class="algos" id="algoPick"></div>
+      </div>
+      <div class="note" id="note"></div>
+      <div class="params" id="params"></div>
+      <div class="tune">
+        <div>
+          <label class="lbl" for="size">ขนาดตาราง <b id="sizeOut">25 × 25</b></label>
+          <input type="range" id="size" min="5" max="60" step="1" value="25">
+        </div>
+        <label class="chk"><input type="checkbox" id="animate" checked> แสดงตอนสร้างทีละขั้น</label>
+        <div>
+          <label class="lbl" for="speed">ความเร็ว <b id="speedOut">กลาง</b></label>
+          <input type="range" id="speed" min="1" max="5" step="1" value="3">
+        </div>
+        <div class="row">
+          <button class="btn primary" id="gen">สร้างใหม่</button>
+          <button class="btn" id="sol" aria-pressed="false">ดูเฉลย</button>
+        </div>
+      </div>
+      <div class="tune">
+        <div class="tuneh">ปรับหลังสร้างเสร็จ (ใช้ได้ทุกวิธี)</div>
+        <div>
+          <label class="lbl" for="minL">ทางหลอกต้องยาวอย่างน้อย <b id="minLOut">5 ช่อง</b></label>
+          <input type="range" id="minL" min="3" max="12" step="1" value="5">
+          <p class="foot" style="margin-top:4px">สั้นกว่านี้นับเป็นซอกตันที่มองแวบเดียวก็รู้ ไม่นับเป็นทางหลอก</p>
+        </div>
+        <label class="chk"><input type="checkbox" id="clean"> เก็บกวาดซอกตันสั้นไปต่อเป็นทางหลอกยาว</label>
+        <div>
+          <label class="lbl" for="braid">ทุบทางตันให้กลายเป็นทางวน <b id="braidOut">0%</b></label>
+          <input type="range" id="braid" min="0" max="100" step="10" value="0">
+          <div class="ends"><span>ทางถูกทางเดียว</span><span>ทางวนเต็มกระดาน</span></div>
+        </div>
+        <div>
+          <label class="lbl" for="tries">สุ่มหลายรอบแล้วเก็บอันที่ทางยาวสุด <b id="triesOut">1 รอบ</b></label>
+          <input type="range" id="tries" min="1" max="200" step="1" value="1">
+        </div>
+        <label class="chk"><input type="checkbox" id="farExit"> ย้ายทางออกไปจุดที่ไกลสุดบนขอบล่าง</label>
+      </div>
+    </section>
+
+    <section class="sheet" aria-label="เขาวงกต">
+      <canvas id="cv" role="img" aria-label="เขาวงกตที่สร้างแบบสุ่ม ทางเข้าด้านบน ทางออกด้านล่าง"></canvas>
+      <div class="legend" id="legend"></div>
+      <div class="stats">
+        <div class="stat"><div class="k">ทางตัน (dead end)</div><div class="v" id="sDead">0</div></div>
+        <div class="stat"><div class="k">ทางเฉลยยาว (ช่อง)</div><div class="v" id="sLen">0</div></div>
+        <div class="stat"><div class="k">ทางหลอกยาวบนทางเฉลย</div><div class="v" id="sCh">0</div></div>
+        <div class="stat"><div class="k">ซอกตันสั้นที่มองแวบเดียวก็รู้</div><div class="v" id="sShort">0</div></div>
+      </div>
+      <p class="pick" id="pick" hidden></p>
+    </section>
+  </div>
+
+  <section class="compare" aria-label="เทียบทุกวิธี">
+    <h2 id="cmpTitle">เทียบทั้ง 11 วิธี</h2>
+    <p class="sub" id="cmpSub">กำลังคำนวณ</p>
+    <div class="cgrid">
+      <div class="metric"><h3>ทางตันต่อ 100 ช่อง</h3><div id="cmpDead"></div></div>
+      <div class="metric"><h3>ความยาวทางเฉลย (ช่อง)</h3><div id="cmpLen"></div></div>
+      <div class="metric"><h3 id="cmpChH">ทางหลอกยาวบนทางเฉลย</h3><div id="cmpCh"></div></div>
+      <div class="metric"><h3 id="cmpShH">ซอกตันสั้น</h3><div id="cmpSh"></div></div>
+    </div>
+    <p class="foot">ทุกวิธีในตารางนี้ใช้ค่าตั้งต้น และให้ perfect maze (เขาวงกตสมบูรณ์) เหมือนกัน คือทุกช่องไปถึงได้และมีทางถูกแค่ทางเดียว ต่างกันที่นิสัยของทาง ทางตันเยอะแปลว่ามีกับดักสั้นๆ ให้เลี้ยวผิดบ่อย ทางเฉลยยาวแปลว่าต้องเดินอ้อมไกล ส่วนทางหลอกยาวคือจุดบนทางเฉลยที่มีทางผิดลึกพอให้หลงเข้าไปจริง ยิ่งเยอะยิ่งต้องตัดสินใจ ซอกตันสั้นคือทางตันที่มองแวบเดียวก็รู้ ยิ่งเยอะยิ่งรกตาโดยไม่ได้ช่วยให้สนุก ความยาวที่ใช้แบ่งปรับได้ที่ "ทางหลอกต้องยาวอย่างน้อย"</p>
+  </section>
+  </div>
+
+  <div id="viewPlay" class="view" hidden>
+    <div class="pgrid">
+      <section class="sheet" aria-label="สนามเล่น">
+        <div class="hud">
+          <div><span class="k">เวลา</span><b id="gTime">0:00.0</b></div>
+          <div><span class="k">ก้าว</span><b id="gSteps">0</b></div>
+          <div><span class="k">สถิติดีสุด</span><b id="gBest">ไม่มี</b></div>
+        </div>
+        <p class="status" id="gStatus"></p>
+        <div class="stage">
+          <canvas id="gcv" tabindex="0" role="img" aria-label="เขาวงกตสำหรับเล่น ใช้ปุ่มลูกศรเพื่อเดิน"></canvas>
+        </div>
+        <div class="win" id="win" hidden>
+          <div class="wincard">
+            <div class="whead">
+              <h2>ออกจากเขาวงกตได้แล้ว</h2>
+              <span class="pill" id="wRecord" hidden>เวลาดีสุดใหม่</span>
+            </div>
+            <div class="score">
+              <div class="snum"><b id="wScore">100</b><span>/100</span></div>
+              <div class="sgrade"><span class="k">คะแนนเดินตรงทาง</span><b id="wGrade"></b></div>
+            </div>
+            <div class="meter" aria-hidden="true"><div class="mfill" id="wMeter"></div></div>
+            <div class="wstats">
+              <div><span class="k">เวลา</span><b id="wTime">0:00.0</b></div>
+              <div><span class="k">ก้าวทั้งหมด</span><b id="wSteps">0</b></div>
+              <div><span class="k">ทางแยกที่เลือกถูก</span><b id="wWaste">0</b></div>
+              <div><span class="k">เลี้ยวผิด</span><b id="wWrong">0</b></div>
+            </div>
+            <p class="wnote" id="wNote"></p>
+            <div class="row">
+              <button class="btn primary" id="wNext">เล่นด่านใหม่</button>
+              <button class="btn" id="wSol" aria-pressed="false">ดูเฉลยเทียบ</button>
+            </div>
+          </div>
+        </div>
+        <div class="dpad" aria-label="ปุ่มเดิน">
+          <button class="dbtn" data-d="u" aria-label="ขึ้น" style="grid-area:1/2">▲</button>
+          <button class="dbtn" data-d="l" aria-label="ซ้าย" style="grid-area:2/1">◀</button>
+          <button class="dbtn" data-d="d" aria-label="ลง" style="grid-area:3/2">▼</button>
+          <button class="dbtn" data-d="r" aria-label="ขวา" style="grid-area:2/3">▶</button>
+        </div>
+        <div class="flagrow">
+          <button class="btn fbtn" id="gFlag"><span class="flagico" aria-hidden="true"></span>ปักธง</button>
+          <button class="btn fbtn" id="gBack">กลับไปที่ธง</button>
+        </div>
+        <p class="hint">กดลูกศรหรือ W A S D บนคีย์บอร์ด หรือเอานิ้วลากบนเขาวงกตได้เลย เดินถอยกลับทางเดิมเส้นจะหายเอง ปุ่ม F ปักธง ปุ่ม R กลับไปที่ธง</p>
+      </section>
+
+      <section class="panel" aria-label="ตั้งค่าเกม">
+        <div>
+          <div class="lbl">ระดับ</div>
+          <div class="seg seg4" role="group" aria-label="ระดับ">
+            <button id="g-easy" data-lv="easy" aria-pressed="false">ง่าย</button>
+            <button id="g-mid" data-lv="mid" aria-pressed="true">กลาง</button>
+            <button id="g-hard" data-lv="hard" aria-pressed="false">ยาก</button>
+            <button id="g-hell" data-lv="hell" aria-pressed="false">โหด</button>
+          </div>
+          <div class="lbl" style="margin-top:6px"><span id="gSize">18 × 18 ช่อง</span></div>
+        </div>
+        <div>
+          <label class="lbl" for="galgo">วิธีสร้าง</label>
+          <select id="galgo"></select>
+          <p class="foot" id="galgoNote" style="margin-top:6px"></p>
+        </div>
+        <div>
+          <label class="lbl" for="gMinL">ทางหลอกต้องยาวอย่างน้อย <b id="gMinLOut">5 ช่อง</b></label>
+          <input type="range" id="gMinL" min="3" max="9" step="1" value="5">
+          <p class="foot" style="margin-top:4px">ซอกตันที่สั้นกว่านี้จะถูกเก็บกวาดไปต่อเป็นทางหลอกยาว ค่าเริ่มและค่าสูงสุดขยายตามระดับ (ง่ายสุด 6 กลางสุด 9 ยากสุด 14 โหดสุด 20)</p>
+        </div>
+        <div>
+          <label class="lbl" for="loops">ทางวน (หลายเส้นทางไปเส้นชัย) <b id="loopsOut">ไม่มี</b></label>
+          <input type="range" id="loops" min="0" max="4" step="1" value="0">
+          <div class="lbl" style="margin-top:2px"><span>ทางถูกทางเดียว</span><span>ทางวนเต็มไปหมด</span></div>
+          <p class="foot" id="loopsNote" style="margin-top:6px"></p>
+        </div>
+        <label class="chk"><input type="checkbox" id="fog"> โหมดไฟฉาย (มองเห็นแค่รอบตัว)</label>
+        <label class="chk"><input type="checkbox" id="snd" checked> เสียงตอนเดิน</label>
+        <div class="row">
+          <button class="btn primary" id="gNew">ด่านใหม่</button>
+          <button class="btn" id="gGive">ยอมแพ้ ดูเฉลย</button>
+        </div>
+        <p class="foot">ทุกด่านสร้างด้วยวิธีที่เลือก แล้วเก็บกวาดซอกตันสั้นไปต่อเป็นทางหลอกยาว สุ่มแบบนี้ 15 รอบแล้วเก็บด่านที่มีทางหลอกยาวบนทางเฉลยมากที่สุด และย้ายทางออกไปจุดที่ไกลสุดบนขอบล่าง ถ้ามีทางวน คะแนนเดินตรงทางจะเทียบกับเส้นทางที่สั้นที่สุด สถิติแยกตามระดับ วิธีสร้าง ความยาวทางหลอก ทางวน และโหมดไฟฉาย เก็บไว้ในเครื่องนี้เท่านั้น</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const ALGOS=[
+  {id:"dfs",name:"DFS",short:"DFS",g:"long"},
+  {id:"hunt",name:"Hunt-and-Kill",short:"Hunt&Kill",g:"long"},
+  {id:"growing",name:"Growing Tree",short:"Growing",g:"long"},
+  {id:"prim",name:"Prim",short:"Prim",g:"bushy"},
+  {id:"kruskal",name:"Kruskal",short:"Kruskal",g:"bushy"},
+  {id:"ab",name:"Aldous-Broder",short:"Aldous-B.",g:"fair"},
+  {id:"wilson",name:"Wilson",short:"Wilson",g:"fair"},
+  {id:"binary",name:"Binary Tree",short:"Binary",g:"row"},
+  {id:"sidewinder",name:"Sidewinder",short:"Sidewinder",g:"row"},
+  {id:"eller",name:"Eller",short:"Eller",g:"row"},
+  {id:"division",name:"Recursive Division",short:"Division",g:"wall"}];
+const GROUPS={long:"ขุดทางยาว",bushy:"แตกกิ่งถี่",fair:"สุ่มแบบยุติธรรม",row:"สร้างทีละแถว",wall:"สร้างกำแพงแทนการขุด"};
+const NOTES={
+  dfs:{h:"DFS (การค้นแบบลงลึกก่อน)",p:"หรือเรียกว่า recursive backtracker (ขุดแล้วถอยกลับ) ตัวขุดเดินสุ่มไปเรื่อยๆ จนเจอทางตัน แล้วถอยย้อนทางเดิมหาจุดที่ยังแตกทางได้ แล้วขุดต่อจนครบทุกช่อง",t:"นิสัย: ทางยาวคดเคี้ยว ทางตันน้อย ทางเฉลยยาวมาก ปรับได้ว่าจะให้ทางตรงยาวหรือเลี้ยวถี่"},
+  hunt:{h:"Hunt-and-Kill (ล่าแล้วฆ่า)",p:"ขุดแบบ DFS แต่พอเจอทางตันจะไม่ถอยกลับ แต่จะกวาดหาช่องที่ยังไม่ขุดซึ่งอยู่ติดกับส่วนที่ขุดแล้ว (แถบสีฟ้าคือแถวที่กำลังกวาด) เจอแล้วเชื่อมเข้าไปแล้วขุดต่อจากตรงนั้น",t:"นิสัย: คล้าย DFS แต่ถ้ากวาดไล่จากบนลงล่าง ทางแยกจะไปกองอยู่ช่วงบนของกระดานมากกว่า"},
+  growing:{h:"Growing Tree (ต้นไม้ที่ค่อยๆ งอก)",p:"เก็บรายการช่องที่ยังขุดต่อได้ (ช่องสีเหลือง) แล้วแต่ละรอบหยิบมาหนึ่งช่องเพื่อขุดต่อ หยิบช่องใหม่สุดจะได้นิสัยแบบ DFS หยิบแบบสุ่มจะได้นิสัยแบบ Prim ผสมกันได้ตามใจ",t:"นิสัย: ปรับนิสัยได้กว้างที่สุดในทุกวิธี แท็บเล่นเกมก็ใช้ตัวนี้"},
+  prim:{h:"Prim (อัลกอริทึมของพริม)",p:"เริ่มจากช่องเดียว แล้วสุ่มหยิบช่องที่อยู่ติดขอบเขาวงกต (ช่องสีเหลือง) มาเชื่อมเข้ากับส่วนที่ขุดแล้ว ขยายออกรอบตัวเหมือนหมึกซึมบนกระดาษ",t:"นิสัย: แตกกิ่งถี่ ทางตันสั้นๆ เยอะมาก ทางเฉลยมักสั้นและตรง ปรับจุดเริ่มกับแนวเอียงของทางได้"},
+  kruskal:{h:"Kruskal (อัลกอริทึมของครุสกัล)",p:"สุ่มทุบกำแพงทั่วทั้งกระดาน แต่ยอมทุบเฉพาะกำแพงที่กั้นสองกลุ่มที่ยังไม่เชื่อมกัน (จำกลุ่มด้วย union-find แปลว่าระบบจับกลุ่ม) สีบนกระดานคือกลุ่มที่เชื่อมกันแล้ว ดูมันค่อยๆ รวมกันจนเหลือก้อนเดียว",t:"นิสัย: ทางตันสั้นเยอะ กระจายสม่ำเสมอทั้งกระดาน ปรับให้ทางเอียงไปแนวนอนหรือแนวตั้งได้"},
+  ab:{h:"Aldous-Broder (อัลดัส บรอเดอร์)",p:"ปล่อยตัวขุดเดินมั่วไปทั่วกระดานแบบไม่มีเป้าหมาย เดินทับทางเดิมก็ได้ แต่จะทุบกำแพงเฉพาะตอนก้าวเข้าช่องที่ยังไม่เคยไป ช่วงท้ายจะช้ามากเพราะต้องเดินมั่วจนกว่าจะบังเอิญเจอช่องที่เหลือ",t:"นิสัย: ยุติธรรม เขาวงกตทุกแบบที่เป็นไปได้มีโอกาสออกเท่ากัน ปรับให้สลับไปใช้ Wilson ช่วงท้ายได้ จะเร็วขึ้นมาก"},
+  wilson:{h:"Wilson (อัลกอริทึมของวิลสัน)",p:"เริ่มจากช่องเดียวเป็นต้นไม้ แล้วปล่อยตัวเดินมั่วจากช่องอื่น (เส้นสีส้ม) จนชนต้นไม้ ถ้าระหว่างทางเดินวนมาชนรอยตัวเองจะลบวงนั้นทิ้งทันที ชนต้นไม้เมื่อไหร่ก็ขุดเส้นทางนั้นจริง",t:"นิสัย: ยุติธรรมเหมือน Aldous-Broder แต่กลับกัน คือช้าตอนแรกแล้วเร็วขึ้นเรื่อยๆ"},
+  binary:{h:"Binary Tree (ต้นไม้ไบนารี)",p:"ง่ายที่สุดในโลก ไล่ทีละช่อง แต่ละช่องสุ่มทุบกำแพงแค่ 2 ทิศที่กำหนด เช่น ขึ้นหรือขวา ไม่ต้องจำอะไรเลย",t:"นิสัย: ลำเอียงชัดมาก ขอบสองด้านเป็นทางตรงโล่งยาว และทางทั้งหมดไหลเฉียงไปทางมุมเดียว"},
+  sidewinder:{h:"Sidewinder (ไซด์ไวน์เดอร์)",p:"ชื่อมาจากงูหางกระดิ่งที่เลื้อยด้านข้าง ไล่ทีละแถว ขุดไปทางขวาเป็นช่วงๆ แล้วสุ่มปิดช่วง พอปิดช่วงจะสุ่มเลือกหนึ่งช่องในช่วงนั้นทะลุไปแถวที่ทำเสร็จแล้ว",t:"นิสัย: ลำเอียงน้อยกว่า Binary Tree แถวแรกเป็นทางตรงยาว ทางมักไหลขึ้นลงเป็นแนวตั้ง"},
+  eller:{h:"Eller (อัลกอริทึมของเอลเลอร์)",p:"ไล่ทีละแถวและจำแค่แถวเดียว แต่ละแถวสุ่มเชื่อมช่องที่อยู่คนละกลุ่ม แล้วให้ทุกกลุ่มเปิดทางลงแถวล่างอย่างน้อยหนึ่งทาง แถวสุดท้ายเชื่อมทุกกลุ่มเข้าด้วยกัน สีบนกระดานคือกลุ่มที่เชื่อมกันแล้ว",t:"นิสัย: สร้างเขาวงกตยาวไม่มีที่สิ้นสุดได้เพราะจำแค่แถวเดียว ปรับความถี่ทางนอนกับทางลงได้"},
+  division:{h:"Recursive Division (แบ่งห้องซ้อนกัน)",p:"คิดกลับด้านกับวิธีอื่น เริ่มจากห้องโล่งไม่มีกำแพง แล้วสร้างกำแพงผ่าห้องเป็นสองส่วนพร้อมเจาะประตูไว้ จากนั้นผ่าห้องย่อยต่อไปเรื่อยๆ (ช่องสีเขียวอ่อนคือห้องที่กำลังผ่า)",t:"นิสัย: กำแพงตรงยาว หน้าตาเหมือนผังอาคาร ถ้าหยุดผ่าเร็วจะเหลือห้องโล่ง ถ้าเจาะประตูหลายช่องจะเกิดทางวน"}
+};
+const pct=v=>v+"%";
+const dirFmt=v=>v===0?"เท่ากัน":v>0?`แนวนอน +${v}%`:`แนวตั้ง +${-v}%`;
+const strFmt=v=>v===50?"สุ่มปกติ":v>50?`ตรงขึ้น ${(v-50)*2}%`:`คดขึ้น ${(50-v)*2}%`;
+const START=[["center","กลางกระดาน"],["corner","มุมซ้ายบน"],["random","สุ่ม"]];
+const PDEF={
+  dfs:[{k:"straight",t:"range",label:"ทางคดหรือทางตรง",min:0,max:100,step:5,v:50,fmt:strFmt,ends:["เลี้ยวถี่","ตรงยาว"]}],
+  hunt:[{k:"straight",t:"range",label:"ทางคดหรือทางตรง",min:0,max:100,step:5,v:50,fmt:strFmt,ends:["เลี้ยวถี่","ตรงยาว"]},
+        {k:"scan",t:"select",label:"วิธีหาช่องใหม่ตอนเจอทางตัน",opts:[["row","กวาดไล่จากบนลงล่าง"],["rand","สุ่มหยิบจากทั่วกระดาน"]],v:"row"}],
+  growing:[{k:"pick",t:"select",label:"หยิบช่องจากรายการแบบไหน",opts:[["newest","ใหม่สุด (นิสัย DFS)"],["oldest","เก่าสุด"],["middle","ตรงกลางรายการ"]],v:"newest"},
+           {k:"mix",t:"range",label:"ผสมการหยิบแบบสุ่ม",min:0,max:100,step:5,v:25,fmt:pct,ends:["ตามแบบที่เลือก","สุ่มล้วนแบบ Prim"]}],
+  prim:[{k:"start",t:"select",label:"จุดเริ่มขุด",opts:START,v:"center"},
+        {k:"dir",t:"range",label:"ทางเดินเอียงไปแนวไหน",min:-100,max:100,step:10,v:0,fmt:dirFmt,ends:["แนวตั้ง","แนวนอน"]}],
+  kruskal:[{k:"dir",t:"range",label:"ทางเดินเอียงไปแนวไหน",min:-100,max:100,step:10,v:0,fmt:dirFmt,ends:["แนวตั้ง","แนวนอน"]}],
+  ab:[{k:"switch",t:"range",label:"สลับไปใช้ Wilson เมื่อสร้างได้",min:10,max:100,step:5,v:100,fmt:v=>v>=100?"ไม่สลับเลย":v+"%",ends:["สลับเร็ว","ไม่สลับ"]}],
+  wilson:[{k:"start",t:"select",label:"ต้นไม้เริ่มที่",opts:START,v:"random"},
+          {k:"order",t:"select",label:"เลือกจุดปล่อยตัวเดินรอบถัดไป",opts:[["rand","สุ่ม"],["scan","ไล่ตามแถวจากบนลงล่าง"]],v:"rand"}],
+  binary:[{k:"corner",t:"select",label:"ทิศที่ทุบได้",opts:[["ne","ขึ้น กับ ขวา"],["nw","ขึ้น กับ ซ้าย"],["se","ลง กับ ขวา"],["sw","ลง กับ ซ้าย"]],v:"ne"},
+          {k:"vert",t:"range",label:"โอกาสทุบทิศแนวตั้ง",min:5,max:95,step:5,v:50,fmt:pct,ends:["ทางนอนเยอะ","ทางตั้งเยอะ"]}],
+  sidewinder:[{k:"close",t:"range",label:"โอกาสปิดช่วงทางแนวนอน",min:5,max:95,step:5,v:50,fmt:pct,ends:["ทางนอนยาว","ทางนอนสั้น"]},
+              {k:"flip",t:"select",label:"ทางตรงยาวอยู่ที่",opts:[["top","ขอบบน"],["bottom","ขอบล่าง"]],v:"top"}],
+  eller:[{k:"join",t:"range",label:"โอกาสเชื่อมช่องข้างกัน",min:5,max:95,step:5,v:50,fmt:pct,ends:["ทางตั้งเยอะ","ทางนอนเยอะ"]},
+         {k:"down",t:"range",label:"โอกาสเปิดทางลงเพิ่มจากขั้นต่ำ",min:0,max:90,step:5,v:30,fmt:pct,ends:["ทางลงน้อย","ทางลงเยอะ"]}],
+  division:[{k:"room",t:"range",label:"ขนาดห้องโล่งที่ปล่อยไว้",min:1,max:8,step:1,v:1,fmt:v=>v===1?"ไม่มีห้องโล่ง":`${v} × ${v}`,ends:["ผ่าจนสุด","ห้องใหญ่"]},
+            {k:"doors",t:"range",label:"ประตูต่อกำแพงหนึ่งแนว",min:1,max:3,step:1,v:1,fmt:v=>v+" ช่อง",ends:["ทางเดียว","มีทางวน"]},
+            {k:"dir",t:"range",label:"กำแพงเอียงไปแนวไหน",min:-100,max:100,step:10,v:0,fmt:dirFmt,ends:["แนวตั้ง","แนวนอน"]}]
+};
+const DEF=a=>Object.fromEntries(PDEF[a].map(d=>[d.k,d.v]));
+const PV=Object.fromEntries(ALGOS.map(a=>[a.id,DEF(a.id)]));
+const SPEED_LABEL=["","ช้ามาก","ช้า","กลาง","เร็ว","เร็วมาก"];
+const SPEED_SEC=[0,14,8,4.5,2.2,1];
+const $=id=>document.getElementById(id);
+const th=v=>Math.round(v).toLocaleString("th-TH");
+const cv=$("cv"),ctx=cv.getContext("2d");
+let n=25,algo="dfs",showSol=false,anim=null,state=null;
+
+function neighbors(c,n){const x=c%n,y=(c/n)|0,a=[];if(y>0)a.push(c-n);if(x<n-1)a.push(c+1);if(y<n-1)a.push(c+n);if(x>0)a.push(c-1);return a}
+const rnd=k=>Math.floor(Math.random()*k);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+function startCell(n,m){return m==="center"?(n>>1)*n+(n>>1):m==="corner"?0:rnd(n*n)}
+function chooseDir(c,from,nb,s){
+  if(from<0||nb.length<2)return nb[rnd(nb.length)];
+  const st=2*c-from;if(!nb.includes(st))return nb[rnd(nb.length)];
+  if(s>=50)return Math.random()<(s-50)/50?st:nb[rnd(nb.length)];
+  if(Math.random()<(50-s)/50){const o=nb.filter(x=>x!==st);return o[rnd(o.length)]}
+  return nb[rnd(nb.length)]}
+
+const GEN={
+  dfs(n,P){const N=n*n,vis=new Uint8Array(N),from=new Int32Array(N).fill(-1),ops=[],r=rnd(N),st=[r];vis[r]=1;ops.push(["c",-1,r]);
+    while(st.length){const c=st[st.length-1],nb=neighbors(c,n).filter(q=>!vis[q]);
+      if(!nb.length){st.pop();if(st.length)ops.push(["m",st[st.length-1]]);continue}
+      const p=chooseDir(c,from[c],nb,P.straight);vis[p]=1;from[p]=c;ops.push(["c",c,p]);st.push(p)}
+    return{ops}},
+  hunt(n,P){const N=n*n,vis=new Uint8Array(N),from=new Int32Array(N).fill(-1),rowCnt=new Int32Array(n),ops=[];
+    const mark=c=>{vis[c]=1;rowCnt[(c/n)|0]++};
+    let c=rnd(N),left=N-1,top=0;mark(c);ops.push(["c",-1,c]);
+    while(true){let nb=neighbors(c,n).filter(q=>!vis[q]);
+      while(nb.length){const p=chooseDir(c,from[c],nb,P.straight);mark(p);from[p]=c;ops.push(["c",c,p]);left--;c=p;nb=neighbors(c,n).filter(q=>!vis[q])}
+      if(!left)break;
+      let found=-1;const ok=q=>!vis[q]&&neighbors(q,n).some(k=>vis[k]);
+      if(P.scan==="row"){while(top<n&&rowCnt[top]===n)top++;
+        for(let y=top;y<n&&found<0;y++){ops.push(["h",y]);if(rowCnt[y]===n)continue;for(let x=0;x<n;x++)if(ok(y*n+x)){found=y*n+x;break}}}
+      else{const cand=[];for(let q=0;q<N;q++)if(ok(q))cand.push(q);found=cand[rnd(cand.length)]}
+      const vn=neighbors(found,n).filter(k=>vis[k]),p=vn[rnd(vn.length)];
+      mark(found);from[found]=p;ops.push(["h",-1],["c",p,found]);left--;c=found}
+    return{ops}},
+  growing(n,P){const N=n*n,vis=new Uint8Array(N),ops=[],r=rnd(N),A=[r],mix=P.mix/100;vis[r]=1;ops.push(["c",-1,r,[r]]);
+    while(A.length){const i=Math.random()<mix?rnd(A.length):P.pick==="oldest"?0:P.pick==="middle"?A.length>>1:A.length-1,c=A[i];
+      const nb=neighbors(c,n).filter(q=>!vis[q]);
+      if(!nb.length){A.splice(i,1);ops.push(["u",c]);continue}
+      const p=nb[rnd(nb.length)];vis[p]=1;A.push(p);ops.push(["c",c,p,[p]])}
+    return{ops}},
+  prim(n,P){const N=n*n,inM=new Uint8Array(N),inF=new Uint8Array(N),F=[],ops=[],wH=Math.pow(10,P.dir/100);
+    const add=c=>{const ad=[];for(const q of neighbors(c,n))if(!inM[q]&&!inF[q]){inF[q]=1;F.push(q);ad.push(q)}return ad};
+    const r=startCell(n,P.start);inM[r]=1;ops.push(["c",-1,r,add(r)]);
+    while(F.length){const k=rnd(F.length),f=F[k];F[k]=F[F.length-1];F.pop();inF[f]=0;
+      const ins=neighbors(f,n).filter(q=>inM[q]),w=ins.map(q=>Math.abs(q-f)===1?wH:1);
+      let t=Math.random()*w.reduce((a,b)=>a+b,0),p=ins[0];for(let i=0;i<ins.length;i++){t-=w[i];if(t<=0){p=ins[i];break}}
+      inM[f]=1;ops.push(["c",p,f,add(f)])}
+    return{ops}},
+  kruskal(n,P){const N=n*n,E=[],b=P.dir/100;
+    for(let c=0;c<N;c++){if(c%n<n-1)E.push([c,c+1,Math.random()*Math.pow(4,-b)]);if(c<N-n)E.push([c,c+n,Math.random()*Math.pow(4,b)])}
+    E.sort((x,y)=>x[2]-y[2]);
+    const par=new Int32Array(N);for(let i=0;i<N;i++)par[i]=i;
+    const find=a=>{while(par[a]!==a){par[a]=par[par[a]];a=par[a]}return a};
+    const ops=[];for(const[a,c]of E){const ra=find(a),rc=find(c);if(ra!==rc){par[ra]=rc;ops.push(["c",a,c])}}
+    return{ops}},
+  ab(n,P){const N=n*n,vis=new Uint8Array(N),ops=[];let c=rnd(N),left=N-1,walk=0;vis[c]=1;ops.push(["c",-1,c]);
+    const stopAt=P.switch>=100?0:Math.floor(N*(1-P.switch/100));
+    while(left>stopAt){const nb=neighbors(c,n),q=nb[rnd(nb.length)];walk++;
+      if(!vis[q]){vis[q]=1;left--;ops.push(["c",c,q])}else ops.push(["m",q]);c=q}
+    if(left>0)walk+=wilsonPhase(n,vis,ops,"rand");
+    return{ops,walk}},
+  wilson(n,P){const N=n*n,inT=new Uint8Array(N),ops=[],s=startCell(n,P.start);inT[s]=1;ops.push(["c",-1,s]);
+    const walk=wilsonPhase(n,inT,ops,P.order);return{ops,walk}},
+  binary(n,P){const ops=[],v=P.corner[0]==="n"?-n:n,h=P.corner[1]==="e"?1:-1,pv=P.vert/100;
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++){const c=y*n+x;ops.push(["m",c]);
+      const cv_=v<0?y>0:y<n-1,ch=h>0?x<n-1:x>0;
+      const t=cv_&&ch?(Math.random()<pv?c+v:c+h):cv_?c+v:ch?c+h:-1;
+      if(t>=0)ops.push(["c",t,c])}
+    return{ops}},
+  sidewinder(n,P){const ops=[],pc=P.close/100,flip=P.flip==="bottom";
+    for(let yy=0;yy<n;yy++){const y=flip?n-1-yy:yy;let run=[];
+      for(let x=0;x<n;x++){const c=y*n+x;ops.push(["m",c]);run.push(c);
+        const first=yy===0,close=x===n-1||(!first&&Math.random()<pc);
+        if(close){if(!first){const m=run[rnd(run.length)];ops.push(["c",m+(flip?n:-n),m])}run=[]}
+        else ops.push(["c",c,c+1])}}
+    return{ops}},
+  eller(n,P){const ops=[],pj=P.join/100,pd=P.down/100;let set=new Int32Array(n),next=1;
+    for(let y=0;y<n;y++){const last=y===n-1;
+      for(let x=0;x<n;x++)if(!set[x])set[x]=next++;
+      for(let x=0;x<n-1;x++){const c=y*n+x;ops.push(["m",c]);
+        if(set[x]!==set[x+1]&&(last||Math.random()<pj)){ops.push(["c",c,c+1]);const o=set[x+1],t=set[x];for(let k=0;k<n;k++)if(set[k]===o)set[k]=t}}
+      ops.push(["m",y*n+n-1]);if(last)break;
+      const groups=new Map();for(let x=0;x<n;x++){const g=groups.get(set[x]);g?g.push(x):groups.set(set[x],[x])}
+      const ns=new Int32Array(n);
+      for(const xs of groups.values()){shuffle(xs);xs.forEach((x,i)=>{if(i===0||Math.random()<pd){const c=y*n+x;ops.push(["c",c,c+n]);ns[x]=set[x]}})}
+      set=ns}
+    return{ops}},
+  division(n,P){const ops=[],k=P.room,b=P.dir/100,st=[[0,0,n,n]];
+    const doors=len=>new Set(shuffle([...Array(len).keys()]).slice(0,Math.min(P.doors,len)));
+    while(st.length){const[x,y,w,h]=st.pop();
+      if(w<2||h<2||(w<=k&&h<=k))continue;
+      let pH=w<h?.8:w>h?.2:.5;pH=Math.min(.95,Math.max(.05,pH+b*.45));
+      ops.push(["r",x,y,w,h]);
+      if(Math.random()<pH){const wy=y+rnd(h-1),ds=doors(w);
+        for(let i=0;i<w;i++)if(!ds.has(i))ops.push(["w",wy*n+x+i,(wy+1)*n+x+i]);
+        st.push([x,wy+1,w,y+h-wy-1],[x,y,w,wy-y+1])}
+      else{const wx=x+rnd(w-1),ds=doors(h);
+        for(let i=0;i<h;i++)if(!ds.has(i))ops.push(["w",(y+i)*n+wx,(y+i)*n+wx+1]);
+        st.push([wx+1,y,x+w-wx-1,h],[x,y,wx-x+1,h])}}
+    ops.push(["r",-1]);
+    return{ops,open:true}}
+};
+function wilsonPhase(n,inT,ops,order){const N=n*n,rest=[],idx=new Int32Array(N).fill(-1),pos=new Int32Array(N).fill(-1);
+  for(let c=0;c<N;c++)if(!inT[c]){idx[c]=rest.length;rest.push(c)}
+  const drop=c=>{const i=idx[c];if(i<0)return;const l=rest.pop();if(l!==c){rest[i]=l;idx[l]=i}idx[c]=-1};
+  let ptr=0,steps=0;
+  while(rest.length){let s;if(order==="scan"){while(inT[ptr])ptr++;s=ptr}else s=rest[rnd(rest.length)];
+    const walk=[s];pos[s]=0;ops.push(["wp",s]);let c=s;
+    while(!inT[c]){const nb=neighbors(c,n),q=nb[rnd(nb.length)];steps++;
+      if(pos[q]>=0){for(let i=pos[q]+1;i<walk.length;i++)pos[walk[i]]=-1;walk.length=pos[q]+1;ops.push(["wt",walk.length])}
+      else{walk.push(q);pos[q]=walk.length-1;ops.push(["wp",q])}
+      c=q}
+    for(let i=walk.length-2;i>=0;i--){inT[walk[i]]=1;drop(walk[i]);ops.push(["c",walk[i+1],walk[i]])}
+    for(const w of walk)pos[w]=-1;ops.push(["wx"])}
+  return steps}
+function generate(n,a,P){return GEN[a](n,P||DEF(a))}
+
+function carve(R,B,a,b){if(a<0)return;const lo=Math.min(a,b),hi=Math.max(a,b);if(hi-lo===1)R[lo]=0;else B[lo]=0}
+function wall(R,B,a,b){const lo=Math.min(a,b),hi=Math.max(a,b);if(hi-lo===1)R[lo]=1;else B[lo]=1}
+function build(n,g){const N=n*n,R=new Uint8Array(N).fill(g.open?0:1),B=new Uint8Array(N).fill(g.open?0:1);
+  for(const o of g.ops){if(o[0]==="c")carve(R,B,o[1],o[2]);else if(o[0]==="w")wall(R,B,o[1],o[2])}return{R,B}}
+function openNb(c,n,R,B){const x=c%n,y=(c/n)|0,a=[];if(x<n-1&&!R[c])a.push(c+1);if(x>0&&!R[c-1])a.push(c-1);if(y<n-1&&!B[c])a.push(c+n);if(y>0&&!B[c-n])a.push(c-n);return a}
+function braidOps(n,R,B,p){if(p<=0)return[];const ops=[],s=n>>1,e=n*(n-1)+(n>>1);
+  const deg=c=>openNb(c,n,R,B).length+(c===s||c===e?1:0);
+  for(const c of shuffle([...Array(n*n).keys()])){if(deg(c)!==1||Math.random()>=p)continue;
+    const op=openNb(c,n,R,B),closed=neighbors(c,n).filter(q=>!op.includes(q));if(!closed.length)continue;
+    const de=closed.filter(q=>deg(q)===1),pool=de.length?de:closed,q=pool[rnd(pool.length)];
+    carve(R,B,c,q);ops.push(["c",c,q])}
+  return ops}
+function countLoops(n,R,B){let e=0;for(let c=0;c<n*n;c++){if(c%n<n-1&&!R[c])e++;if(c<n*n-n&&!B[c])e++}return e-(n*n-1)}
+function solve(n,R,B,far=false){const s=n>>1,prev=new Int32Array(n*n).fill(-1),dist=new Int32Array(n*n);prev[s]=s;const q=[s];let h=0;
+  while(h<q.length){const c=q[h++];for(const t of openNb(c,n,R,B))if(prev[t]<0){prev[t]=c;dist[t]=dist[c]+1;q.push(t)}}
+  let ex=n>>1;if(far){for(let x=0;x<n;x++)if(dist[n*(n-1)+x]>dist[n*(n-1)+ex])ex=x}
+  const e=n*(n-1)+ex,p=[];let c=e;while(c!==s){p.push(c);c=prev[c]}p.push(s);return{path:p,ex}}
+function deadEnds(n,R,B,ex=n>>1){const s=n>>1,e=n*(n-1)+ex;let d=0;for(let c=0;c<n*n;c++){let k=openNb(c,n,R,B).length;if(c===s||c===e)k++;if(k===1)d++}return d}
+function countChoices(n,R,B,path,minLen){const on=new Uint8Array(n*n);for(const c of path)on[c]=1;let cnt=0;
+  for(const c of path)for(const q of openNb(c,n,R,B)){if(on[q])continue;
+    let size=0;const st=[q],seen=new Set([c,q]);
+    while(st.length&&size<minLen){const x=st.pop();size++;for(const y of openNb(x,n,R,B))if(!seen.has(y)&&!on[y]){seen.add(y);st.push(y)}}
+    if(size>=minLen)cnt++}
+  return cnt}
+function shortStubs(n,R,B,L){const s=n>>1,e=n*(n-1)+(n>>1);let k=0;
+  const deg=c=>openNb(c,n,R,B).length+(c===s||c===e?1:0);
+  for(let tip=0;tip<n*n;tip++){if(tip===s||tip===e||deg(tip)!==1)continue;let len=1,prev=-1,cur=tip;
+    while(len<L){const nx=openNb(cur,n,R,B).filter(q=>q!==prev);if(nx.length!==1)break;const q=nx[0];if(deg(q)>=3||q===s||q===e)break;len++;prev=cur;cur=q}
+    if(len<L)k++}
+  return k}
+function cleanStubs(n,R,B,L){const s=n>>1,e=n*(n-1)+(n>>1),ops=[];
+  const deg=c=>openNb(c,n,R,B).length+(c===s||c===e?1:0);
+  const walk=tip=>{const cells=[tip];let prev=-1,cur=tip;
+    while(true){const nx=openNb(cur,n,R,B).filter(q=>q!==prev);if(nx.length!==1)return null;const q=nx[0];
+      if(deg(q)>=3)return{cells,j:q};if(q===s||q===e)return null;cells.push(q);prev=cur;cur=q}};
+  for(let pass=0;pass<8;pass++){let changed=false;
+    const tips=[];for(let c=0;c<n*n;c++)if(c!==s&&c!==e&&deg(c)===1)tips.push(c);
+    for(const tip of shuffle(tips)){if(deg(tip)!==1)continue;
+      const st=walk(tip);if(!st||st.cells.length>=L)continue;
+      const set=new Set(st.cells),root=st.cells[st.cells.length-1],cand=[];
+      for(const c of st.cells)for(const q of neighbors(c,n))if(!set.has(q)&&q!==st.j&&q!==s&&q!==e&&deg(q)===1)cand.push([c,q]);
+      if(!cand.length)continue;
+      const[c,q]=cand[rnd(cand.length)];wall(R,B,root,st.j);carve(R,B,c,q);ops.push(["w",root,st.j],["c",c,q]);changed=true}
+    if(!changed)break}
+  return ops}
+const minL=()=>+$("minL").value;
+function ufFind(par,a){while(par[a]!==a){par[a]=par[par[a]];a=par[a]}return a}
+
+function newMaze(animate){
+  if(anim){cancelAnimationFrame(anim);anim=null}
+  if(showSol)setSol(false);
+  const tries=+$("tries").value,far=$("farExit").checked,bp=+$("braid").value/100,P=PV[algo],t0=performance.now();
+  let best=null,sum=0,done=0;
+  const L=minL(),doClean=$("clean").checked;
+  for(let t=0;t<tries;t++){const g=generate(n,algo,P),f=build(n,g),co=doClean?cleanStubs(n,f.R,f.B,L):[],bo=braidOps(n,f.R,f.B,bp),r=solve(n,f.R,f.B,far);sum+=r.path.length;done++;
+    if(!best||r.path.length>best.path.length)best={g,bo:co.concat(bo),moved:co.length/2,fin:f,path:r.path,ex:r.ex};
+    if(performance.now()-t0>1500)break}
+  const{g,bo,moved,fin,path,ex}=best,N=n*n,setMode=algo==="kruskal"||algo==="eller";
+  let par=null,sz=null;if(setMode){par=new Int32Array(N);sz=new Int32Array(N).fill(1);for(let i=0;i<N;i++)par[i]=i}
+  state={ops:bo.length?g.ops.concat(bo):g.ops,fin,path,ex,dead:deadEnds(n,fin.R,fin.B,ex),ch:countChoices(n,fin.R,fin.B,path,L),short:shortStubs(n,fin.R,fin.B,L),
+    R:new Uint8Array(N).fill(g.open?0:1),B:new Uint8Array(N).fill(g.open?0:1),vis:new Uint8Array(N),front:new Uint8Array(N),
+    cur:-1,wk:[],hunt:-1,room:null,par,sz,i:0,done:false};
+  const msgs=[];
+  if(tries>1)msgs.push(`สุ่มมา ${th(done)} รอบ${done<tries?" (หยุดก่อนเพราะวิธีนี้ใช้เวลานาน)":""} ทางเฉลยเฉลี่ย ${th(sum/done)} ช่อง เก็บอันที่ยาวสุดไว้ <b>${th(path.length)}</b> ช่อง`);
+  if(moved)msgs.push(`เก็บกวาดซอกสั้นไป <b>${th(moved)}</b> จุด โดยย้ายไปต่อเป็นทางหลอกที่ยาวขึ้น`);
+  if(g.walk)msgs.push(`ตัวเดินมั่วไปทั้งหมด <b>${th(g.walk)}</b> ก้าว กว่าจะครบ ${th(N)} ช่อง`);
+  const loops=countLoops(n,fin.R,fin.B);
+  if(loops>0)msgs.push(`มีทางวน <b>${th(loops)}</b> วง เลยมีทางไปถึงเส้นชัยได้มากกว่าหนึ่งทาง`);
+  $("pick").hidden=!msgs.length;$("pick").innerHTML=msgs.join("<br>");
+  updateStats();
+  if(animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)run();else finish();
+}
+function step(o){const s=state,t=o[0];
+  if(t==="c"){const a=o[1],b=o[2];
+    if(a>=0){carve(s.R,s.B,a,b);s.vis[a]=1;if(s.par){const ra=ufFind(s.par,a),rb=ufFind(s.par,b);if(ra!==rb){s.par[ra]=rb;s.sz[rb]+=s.sz[ra]}}}
+    s.vis[b]=1;s.front[b]=0;s.cur=b;if(o[3])for(const q of o[3])s.front[q]=1}
+  else if(t==="m"){s.cur=o[1];s.vis[o[1]]=1}
+  else if(t==="u")s.front[o[1]]=0;
+  else if(t==="h")s.hunt=o[1];
+  else if(t==="w")wall(s.R,s.B,o[1],o[2]);
+  else if(t==="r")s.room=o[1]<0?null:o.slice(1);
+  else if(t==="wp"){s.wk.push(o[1]);s.cur=o[1]}
+  else if(t==="wt"){s.wk.length=o[1];s.cur=s.wk[s.wk.length-1]}
+  else if(t==="wx")s.wk=[]}
+function finish(){const s=state;s.R=s.fin.R;s.B=s.fin.B;s.done=true;s.cur=-1;s.wk=[];s.hunt=-1;s.room=null;draw()}
+function run(){
+  const s=state,per=Math.max(1,Math.ceil(s.ops.length/(SPEED_SEC[+$("speed").value]*60)));
+  const tick=()=>{for(let k=0;k<per&&s.i<s.ops.length;k++)step(s.ops[s.i++]);
+    if(s.i>=s.ops.length){anim=null;finish();return}draw();anim=requestAnimationFrame(tick)};
+  anim=requestAnimationFrame(tick);
+}
+
+function tok(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function draw(){
+  if(!state)return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||400;
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(W*dpr)}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const C={paper:tok("--surface"),ink:tok("--ink"),visit:tok("--visit"),front:tok("--front"),cur:tok("--cur"),path:tok("--path")};
+  const pad=Math.max(14,W*0.04),cs=(W-2*pad)/n,s=state,N=n*n,cx=c=>pad+(c%n)*cs,cy=c=>pad+((c/n)|0)*cs;
+  ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,W);
+  if(!s.done){
+    if(s.room){const[x,y,w,h]=s.room;ctx.fillStyle=tok("--room");ctx.fillRect(pad+x*cs,pad+y*cs,w*cs,h*cs)}
+    if(s.par){const S=tok("--set-s"),L=tok("--set-l");
+      for(let c=0;c<N;c++){if(!s.vis[c])continue;const r=ufFind(s.par,c);
+        ctx.fillStyle=s.sz[r]>1?`hsl(${(r*137.508)%360} ${S} ${L})`:C.visit;ctx.fillRect(cx(c),cy(c),cs+.5,cs+.5)}}
+    else for(let c=0;c<N;c++){if(s.front[c]){ctx.fillStyle=C.front;ctx.fillRect(cx(c),cy(c),cs+.5,cs+.5)}
+      else if(s.vis[c]){ctx.fillStyle=C.visit;ctx.fillRect(cx(c),cy(c),cs+.5,cs+.5)}}
+    if(s.hunt>=0){ctx.fillStyle=tok("--hunt");ctx.fillRect(pad,pad+s.hunt*cs,n*cs,cs)}
+    if(s.wk.length){ctx.save();ctx.strokeStyle=tok("--b2");ctx.lineWidth=Math.max(2,cs*.34);ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();
+      s.wk.forEach((c,i)=>{const x=cx(c)+cs/2,y=cy(c)+cs/2;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.restore()}
+    if(s.cur>=0){ctx.fillStyle=C.cur;ctx.fillRect(cx(s.cur)+cs*.15,cy(s.cur)+cs*.15,cs*.7,cs*.7)}
+  }
+  if(s.done&&showSol&&labSol&&labSol.n===n)paintSol(ctx,labSol,pad,cs,pad+n*cs);
+  ctx.strokeStyle=C.ink;ctx.lineWidth=Math.min(3,Math.max(1,cs*.12));ctx.lineCap="square";ctx.beginPath();
+  for(let c=0;c<N;c++){const x=cx(c),y=cy(c);
+    if(s.R[c]&&c%n<n-1){ctx.moveTo(x+cs,y);ctx.lineTo(x+cs,y+cs)}
+    if(s.B[c]&&c<N-n){ctx.moveTo(x,y+cs);ctx.lineTo(x+cs,y+cs)}}
+  const g0=pad+(n>>1)*cs,g1=g0+cs,b0=pad+s.ex*cs,b1=b0+cs,E=pad+n*cs;
+  ctx.moveTo(pad,pad);ctx.lineTo(g0,pad);ctx.moveTo(g1,pad);ctx.lineTo(E,pad);
+  ctx.moveTo(pad,E);ctx.lineTo(b0,E);ctx.moveTo(b1,E);ctx.lineTo(E,E);
+  ctx.moveTo(pad,pad);ctx.lineTo(pad,E);ctx.moveTo(E,pad);ctx.lineTo(E,E);ctx.stroke();
+  ctx.fillStyle=C.path;const mx=g0+cs/2,ar=Math.min(8,Math.max(4,pad*.35));
+  ctx.beginPath();ctx.moveTo(mx-ar,pad-ar*1.6);ctx.lineTo(mx+ar,pad-ar*1.6);ctx.lineTo(mx,pad-ar*.3);ctx.fill();
+  const bx=b0+cs/2;ctx.beginPath();ctx.moveTo(bx-ar,E+ar*.3);ctx.lineTo(bx+ar,E+ar*.3);ctx.lineTo(bx,E+ar*1.6);ctx.fill();
+}
+function updateStats(){const s=state,N=n*n;
+  $("sDead").textContent=th(s.dead);$("sLen").textContent=th(s.path.length);
+  $("sCh").textContent=th(s.ch);$("sShort").textContent=th(s.short)}
+
+let cmpToken=0,cmpRes=null;
+function compare(){const my=++cmpToken,nn=n,N=nn*nn,res={},ml=minL();let i=0;
+  $("cmpTitle").textContent=`เทียบทั้ง ${ALGOS.length} วิธีที่ขนาด ${nn} × ${nn}`;
+  $("cmpSub").textContent="กำลังคำนวณ";
+  const next=()=>{if(my!==cmpToken)return;const a=ALGOS[i].id,heavy=a==="ab"||a==="wilson";
+    const T=Math.max(3,Math.round((nn<=20?40:nn<=40?14:7)*(heavy?.5:1)));let d=0,l=0,c=0,sh=0;
+    for(let t=0;t<T;t++){const f=build(nn,generate(nn,a)),r=solve(nn,f.R,f.B);d+=deadEnds(nn,f.R,f.B);l+=r.path.length;c+=countChoices(nn,f.R,f.B,r.path,ml);sh+=shortStubs(nn,f.R,f.B,ml)}
+    res[a]={dead:d/T/N*100,len:l/T,ch:c/T,sh:sh/T};i++;
+    if(i<ALGOS.length){$("cmpSub").textContent=`กำลังคำนวณ ${i} จาก ${ALGOS.length} วิธี`;setTimeout(next,0)}
+    else{cmpRes=res;renderCompare();$("cmpSub").textContent="ค่าตั้งต้นของแต่ละวิธี ไม่รวมการปรับหลังสร้าง แถบสีชมพูคือวิธีที่เลือกอยู่"}};
+  setTimeout(next,40)}
+function renderCompare(){if(!cmpRes)return;
+  const bars=(key,fmt)=>{const mx=Math.max(...ALGOS.map(a=>cmpRes[a.id][key]))||1;
+    return ALGOS.map(a=>`<div class="bar${a.id===algo?" cur":""}"><span class="n">${a.short}</span><div class="t"><div class="f" style="width:${(cmpRes[a.id][key]/mx*100).toFixed(1)}%"></div></div><span class="val">${fmt(cmpRes[a.id][key])}</span></div>`).join("")};
+  $("cmpDead").innerHTML=bars("dead",v=>v.toFixed(1));
+  $("cmpLen").innerHTML=bars("len",th);
+  $("cmpCh").innerHTML=bars("ch",th);$("cmpSh").innerHTML=bars("sh",th);
+  $("cmpChH").textContent=`ทางหลอกยาว ${minL()} ช่องขึ้นไปบนทางเฉลย`;$("cmpShH").textContent=`ซอกตันสั้นกว่า ${minL()} ช่อง`}
+let cmpTimer=null;
+function scheduleCompare(){clearTimeout(cmpTimer);cmpTimer=setTimeout(compare,60)}
+
+const LEG=[
+  ["visit",a=>!["division","kruskal","eller"].includes(a),'<i class="sw" style="background:var(--visit)"></i>ช่องที่สร้างแล้ว'],
+  ["sets",a=>a==="kruskal"||a==="eller",'<i class="sw sets"></i>สีตามกลุ่มที่เชื่อมกันแล้ว'],
+  ["cur",a=>!["division","kruskal"].includes(a),'<i class="sw" style="background:var(--cur)"></i>ตัวขุด'],
+  ["front",a=>a==="prim"||a==="growing",'<i class="sw" style="background:var(--front)"></i>ช่องรอขุด'],
+  ["walk",a=>a==="wilson"||a==="ab",'<i class="sw" style="background:var(--b2)"></i>ทางเดินมั่วที่ยังไม่ยืนยัน'],
+  ["hunt",a=>a==="hunt",'<i class="sw" style="background:var(--hunt)"></i>แถวที่กำลังกวาดหา'],
+  ["room",a=>a==="division",'<i class="sw" style="background:var(--room)"></i>ห้องที่กำลังผ่า'],
+  ["sol",()=>true,'<i class="sw" style="background:var(--path)"></i>ทางเฉลย'],
+  ["br",()=>true,'<i class="sw" style="background:var(--b1)"></i><i class="sw" style="background:var(--b2);margin-left:-4px"></i><i class="sw" style="background:var(--b3);margin-left:-4px"></i>ทางแยกที่แตกออกตอนดูเฉลย']];
+function renderLegend(){$("legend").innerHTML=LEG.filter(l=>l[1](algo)).map(l=>`<span>${l[2]}</span>`).join("")}
+function renderPicker(){const box=$("algoPick");box.innerHTML=Object.entries(GROUPS).map(([g,label])=>
+  `<div class="agroup"><span>${label}</span><div class="chips">${ALGOS.filter(a=>a.g===g).map(a=>`<button class="chip" id="a-${a.id}" data-a="${a.id}" aria-pressed="${a.id===algo}">${a.name}</button>`).join("")}</div></div>`).join("");
+  box.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>selectAlgo(b.dataset.a)))}
+function renderParams(){const a=algo,name=ALGOS.find(x=>x.id===a).name;
+  $("params").innerHTML=`<div class="tuneh">ปรับตามนิสัยของ ${name}</div>`+PDEF[a].map(d=>{const id=`p-${a}-${d.k}`,v=PV[a][d.k];
+    if(d.t==="select")return`<div><label class="lbl" for="${id}">${d.label}</label><select id="${id}">${d.opts.map(o=>`<option value="${o[0]}"${o[0]===v?" selected":""}>${o[1]}</option>`).join("")}</select></div>`;
+    return`<div><label class="lbl" for="${id}">${d.label} <b id="${id}-o">${d.fmt(v)}</b></label><input type="range" id="${id}" min="${d.min}" max="${d.max}" step="${d.step}" value="${v}">${d.ends?`<div class="ends"><span>${d.ends[0]}</span><span>${d.ends[1]}</span></div>`:""}</div>`}).join("")
+    +`<button class="btn" id="pReset" style="flex:none">คืนค่าตั้งต้น</button>`;
+  PDEF[a].forEach(d=>{const el=$(`p-${a}-${d.k}`);
+    if(d.t==="range")el.addEventListener("input",()=>{PV[a][d.k]=+el.value;$(`p-${a}-${d.k}-o`).textContent=d.fmt(+el.value)});
+    el.addEventListener("change",()=>{PV[a][d.k]=d.t==="range"?+el.value:el.value;newMaze($("animate").checked)})});
+  $("pReset").addEventListener("click",()=>{PV[a]=DEF(a);renderParams();newMaze($("animate").checked)})}
+function setNote(){const x=NOTES[algo];$("note").innerHTML=`<h2>${x.h}</h2><p>${x.p}</p><p class="trait">${x.t}</p>`}
+function selectAlgo(a){algo=a;document.querySelectorAll("#algoPick .chip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.a===a));
+  setNote();renderParams();renderLegend();renderCompare();newMaze($("animate").checked)}
+
+let labSol=null,labRaf=null;
+function stopLabSol(){if(labRaf){cancelAnimationFrame(labRaf);labRaf=null}labSol=null}
+function startLabSol(){stopLabSol();const s=state,on=new Uint8Array(n*n);for(const c of s.path)on[c]=1;
+  labSol=solRun(n,s.fin.R,s.fin.B,n>>1,n*(n-1)+s.ex,on);
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){labSol.done=true;return}
+  const tick=()=>{if(!labSol)return;draw();
+    if(performance.now()-labSol.t0>labSol.dur+700){labSol.done=true;labRaf=null;draw()}else labRaf=requestAnimationFrame(tick)};
+  labRaf=requestAnimationFrame(tick)}
+function setSol(v){showSol=v;if(v&&state&&state.done)startLabSol();else stopLabSol();$("sol").setAttribute("aria-pressed",v);$("sol").textContent=v?"ซ่อนเฉลย":"ดูเฉลย";draw()}
+
+function fitMinL(){const mx=Math.max(6,Math.round(n/2)),el=$("minL");el.max=mx;if(+el.value>mx)el.value=mx;$("minLOut").textContent=el.value+" ช่อง"}
+$("size").addEventListener("input",()=>{n=+$("size").value;$("sizeOut").textContent=`${n} × ${n}`;fitMinL();newMaze(false)});
+$("size").addEventListener("change",scheduleCompare);
+$("speed").addEventListener("input",()=>{$("speedOut").textContent=SPEED_LABEL[+$("speed").value]});
+$("braid").addEventListener("input",()=>{$("braidOut").textContent=$("braid").value+"%"});
+$("tries").addEventListener("input",()=>{$("triesOut").textContent=$("tries").value+" รอบ"});
+for(const id of["braid","tries","farExit","clean"])$(id).addEventListener("change",()=>newMaze($("animate").checked));
+$("minL").addEventListener("input",()=>{$("minLOut").textContent=$("minL").value+" ช่อง"});
+$("minL").addEventListener("change",()=>{newMaze($("animate").checked);scheduleCompare()});
+$("gen").addEventListener("click",()=>newMaze($("animate").checked));
+$("sol").addEventListener("click",()=>{if(state&&!state.done){if(anim){cancelAnimationFrame(anim);anim=null}finish()}setSol(!showSol)});
+addEventListener("resize",draw);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>requestAnimationFrame(draw));
+new MutationObserver(()=>requestAnimationFrame(draw)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+renderPicker();setNote();renderParams();renderLegend();fitMinL();newMaze(true);scheduleCompare();
+</script>
+<script>
+const LEVELS={easy:10,mid:18,hard:28,hell:40};
+const gcv=$("gcv"),gx=gcv.getContext("2d");
+let G=null,lv="mid",gTimer=null;
+const LV_MINL={easy:4,mid:5,hard:6,hell:8};
+const GNOTE={dfs:"ทางยาวคดเคี้ยวมาก แต่ทางหลอกยาวมีน้อย",hunt:"คล้าย DFS ทางยาว ทางหลอกไปกองช่วงบน",growing:"ผสม DFS กับ Prim เนื้อเขาวงกตเป็นหย่อมๆ",
+  prim:"แตกกิ่งถี่ ทางเฉลยสั้นและตรง",kruskal:"ทางหลอกยาวเยอะที่สุดกลุ่มหนึ่ง เนื้อสม่ำเสมอ",ab:"ยุติธรรม ทางหลอกเยอะ สร้างช้าหน่อยในด่านใหญ่",
+  wilson:"ทางหลอกยาวเยอะ เนื้อสม่ำเสมอทั้งกระดาน ไม่มีนิสัยลำเอียง (ค่าเริ่มต้น)",binary:"มีทางตรงโล่งยาวสองขอบ จับทางง่าย",sidewinder:"แถวบนเป็นทางตรงยาว จับทางง่าย",
+  eller:"ทางหลอกเยอะ เนื้อสม่ำเสมอ",division:"ทางหลอกยาวเยอะ กำแพงตรงยาวเหมือนผังอาคาร"};
+let galgo="wilson";
+const LOOPS=[
+  {name:"ไม่มี",p:0,note:"ทางถูกมีทางเดียว หลงแล้วต้องเดินย้อนกลับเท่านั้น"},
+  {name:"น้อย",p:0.1,note:"มีทางลัดโผล่มาบ้าง บางทีหลงไปแล้วยังวนกลับมาทางถูกได้"},
+  {name:"กลาง",p:0.25,note:"มีหลายเส้นทางไปเส้นชัย ต้องเลือกว่าทางไหนสั้นกว่า"},
+  {name:"เยอะ",p:0.5,note:"ทางวนเต็มไปหมด จำทางยากขึ้นเพราะวนกลับมาที่เดิมได้"},
+  {name:"เยอะมาก",p:1,note:"แทบไม่มีทางตันเลย กลายเป็นเมืองที่มีถนนเชื่อมกันทุกทิศ"}];
+
+let AC=null,lastTick=0;
+function audio(){if(!$("snd").checked)return null;
+  if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}
+  if(AC.state==="suspended")AC.resume().catch(()=>{});return AC}
+function tone(freq,dur,type,vol,slide,at=0){const a=audio();if(!a)return;
+  const t=a.currentTime+at,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,t);if(slide)o.frequency.exponentialRampToValueAtTime(freq*slide,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.006);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+0.03)}
+const SFX={
+  step(back){const now=performance.now();if(now-lastTick<38)return;lastTick=now;
+    back?tone(330,0.07,"triangle",0.16,0.8):tone(560+Math.random()*80,0.055,"triangle",0.16,1.15)},
+  bump(){tone(140,0.11,"square",0.07,0.6)},
+  flag(){tone(784,0.08,"triangle",0.18);tone(1175,0.14,"triangle",0.18,0,0.08)},
+  warp(){tone(1100,0.28,"sine",0.16,0.35)},
+  win(){[523,659,784,1047].forEach((f,i)=>tone(f,i===3?0.45:0.14,"triangle",0.2,0,i*0.11))},
+  giveUp(){[392,330,262].forEach((f,i)=>tone(f,0.2,"triangle",0.15,0,i*0.15))}
+};
+try{const v=localStorage.getItem("maze-sound");if(v==="0")$("snd").checked=false}catch(e){}
+$("snd").addEventListener("change",()=>{try{localStorage.setItem("maze-sound",$("snd").checked?"1":"0")}catch(e){}
+  if($("snd").checked)tone(660,0.08,"triangle",0.16,1.2)});
+
+function fmt(ms){const t=Math.floor(ms/100),d=t%10,s=Math.floor(t/10)%60,m=Math.floor(t/600);return`${m}:${String(s).padStart(2,"0")}.${d}`}
+function bestKey(){return`maze-best-${lv}-${galgo}-m${$("gMinL").value}-l${$("loops").value}-${$("fog").checked?1:0}`}
+function getBest(){try{const v=localStorage.getItem(bestKey());return v?+v:null}catch(e){return null}}
+function setBest(ms){try{localStorage.setItem(bestKey(),String(Math.round(ms)))}catch(e){}}
+function geom(W,n){const pad=Math.max(14,W*0.04);return{pad,cs:(W-2*pad)/n}}
+
+function newGame(){
+  const n=LEVELS[lv];let best=null;
+  const minLen=+$("gMinL").value,lp=LOOPS[+$("loops").value].p,t0=performance.now();
+  for(let t=0;t<15;t++){const f=build(n,generate(n,galgo));cleanStubs(n,f.R,f.B,minLen);braidOps(n,f.R,f.B,lp);
+    const r=solve(n,f.R,f.B,true),ch=countChoices(n,f.R,f.B,r.path,minLen);
+    if(!best||ch>best.ch||(ch===best.ch&&r.path.length>best.path.length))best={R:f.R,B:f.B,path:r.path,ex:r.ex,ch,loops:countLoops(n,f.R,f.B)};
+    if(performance.now()-t0>900)break}
+  stopTimer();if(solRaf){cancelAnimationFrame(solRaf);solRaf=null}
+  G={n,R:best.R,B:best.B,path:best.path,ex:best.ex,s:n>>1,e:n*(n-1)+best.ex,pos:n>>1,trail:[n>>1],
+     seen:new Uint8Array(n*n),steps:0,t0:0,el:0,state:"ready",showSol:false,flag:-1,flagTrail:null};
+  G.seen[G.s]=1;G.wrong=0;G.lost=0;G.back=0;G.warp=0;G.rewalk=0;G.maxP=0;G.onPath=new Uint8Array(n*n);G.pidx=new Int32Array(n*n).fill(-1);
+  G.path.forEach((c,i)=>{G.onPath[c]=1;G.pidx[c]=G.path.length-1-i});
+  G.D=0;for(const c of G.path)for(const q of openNb(c,n,G.R,G.B))if(!G.onPath[q])G.D++;
+  $("win").hidden=true;showControls(true);$("gSize").textContent=`${n} × ${n} ช่อง`;
+  $("gStatus").textContent=`ด่านนี้มีทางหลอกยาว ${minLen} ช่องขึ้นไป ${best.ch} จุดบนทางเฉลย${best.loops>0?` และมีทางวน ${best.loops} วง`:""} เริ่มจากลูกศรสีน้ำเงินไปให้ถึงลูกศรสีชมพู`;
+  updHud();drawG();
+}
+function updHud(){$("gTime").textContent=fmt(G.el);$("gSteps").textContent=G.steps.toLocaleString("th-TH");
+  const b=getBest();$("gBest").textContent=b==null?"ไม่มี":fmt(b)}
+function startTimer(){G.t0=performance.now();gTimer=setInterval(()=>{G.el=performance.now()-G.t0;$("gTime").textContent=fmt(G.el)},100)}
+function stopTimer(){if(gTimer){clearInterval(gTimer);gTimer=null}}
+function canMove(c,d){const n=G.n,x=c%n,y=(c/n)|0;
+  if(d==="r")return x<n-1&&!G.R[c];if(d==="l")return x>0&&!G.R[c-1];
+  if(d==="d")return y<n-1&&!G.B[c];return y>0&&!G.B[c-n]}
+function move(d){
+  if(!G||G.state==="won"||G.state==="gaveup"||!canMove(G.pos,d))return false;
+  const nx=G.pos+({r:1,l:-1,d:G.n,u:-G.n})[d];
+  if(G.onPath[G.pos]&&!G.onPath[nx])G.wrong++;
+  if(!G.onPath[G.pos]||!G.onPath[nx])G.lost++;else if(G.pidx[nx]<G.pidx[G.pos])G.back++;
+  else if(G.pidx[nx]<=G.maxP)G.rewalk++;else G.maxP=G.pidx[nx];
+  if(G.state==="ready"){G.state="play";startTimer();$("gStatus").textContent=""}
+  const tr=G.trail,back=tr.length>1&&tr[tr.length-2]===nx;if(back)tr.pop();else tr.push(nx);
+  if(nx!==G.e)SFX.step(back);
+  G.pos=nx;G.seen[nx]=1;G.steps++;$("gSteps").textContent=G.steps.toLocaleString("th-TH");
+  if(nx===G.e)win();else drawG();
+  return true;
+}
+function win(){
+  stopTimer();G.el=performance.now()-G.t0;G.state="won";SFX.win();
+  const old=getBest(),rec=old==null||G.el<old;if(rec)setBest(G.el);
+  updHud();drawG();
+  const shortest=G.path.length-1,waste=G.steps-shortest,th=v=>v.toLocaleString("th-TH");
+  const D=Math.max(1,G.D),W=Math.min(G.wrong,D),dec=(D-W)/D,eff=Math.min(1,shortest/G.steps);
+  let score=Math.round(100*(0.8*dec+0.2*eff));if(score>=100&&waste>0)score=99;
+  $("wScore").textContent=score;$("wMeter").style.width="0%";
+  $("wGrade").textContent=waste<=0?"เป๊ะ ไม่หลงเลยสักก้าว":W===0?"ไม่เลี้ยวผิดเลย มีเดินถอยนิดหน่อย":W<=2?"เกือบเป๊ะ เลี้ยวผิดนิดเดียว":W/D<=.15?"เก่งมาก":W/D<=.3?"พอใช้ หลงไปหลายทาง":"หลงเยอะหน่อย ลองใหม่นะ";
+  $("wTime").textContent=fmt(G.el);$("wSteps").textContent=th(G.steps);
+  $("wWaste").textContent=`${th(D-W)} / ${th(D)}`;$("wWrong").textContent=th(G.wrong)+" ครั้ง";
+  $("wRecord").hidden=!rec;
+  const parts=[];if(G.lost)parts.push(`หลงในทางผิด ${th(G.lost)} ก้าว`);if(G.back)parts.push(`ถอยหลังบนทางถูก ${th(G.back)} ก้าว`);if(G.rewalk)parts.push(`เดินซ้ำช่วงที่เคยผ่านแล้ว ${th(G.rewalk)} ก้าว`);  $("wNote").innerHTML=`คะแนน = 80% จากทางแยกที่เลือกถูก + 20% จากระยะทาง (ทางสั้นสุด ${th(shortest)} ก้าว เดินจริง ${th(G.steps)} ก้าว)`
+    +(waste>0?`<br>ก้าวเกิน ${th(waste)} ก้าว มาจาก ${parts.join(" ")}`:"")
+    +(G.warp?`<br>วาร์ปกลับธง ${th(G.warp)} ครั้ง ไม่นับก้าว`:"")
+    +(waste>0?`<br><i></i>ช่องสีแดงอ่อนบนกระดานคือทางที่หลงเข้าไป`:"");
+  $("wSol").setAttribute("aria-pressed","false");$("wSol").textContent="ดูเฉลยเทียบ";
+  showControls(false);$("win").hidden=false;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{$("wMeter").style.width=score+"%"}));
+  try{$("win").scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}catch(e){}
+}
+let msgTo=null;
+function say(t){$("gStatus").textContent=t;clearTimeout(msgTo);msgTo=setTimeout(()=>{if(G&&G.state==="play")$("gStatus").textContent=""},2600)}
+function playing(){return G&&(G.state==="ready"||G.state==="play")}
+function setFlag(){if(!playing())return;G.flag=G.pos;G.flagTrail=G.trail.slice();SFX.flag();
+  say("ปักธงแล้ว ถ้าไปเจอทางตันกดกลับไปที่ธงได้เลย");drawG()}
+function backToFlag(){if(!playing())return;
+  if(G.flag<0){SFX.bump();say("ยังไม่ได้ปักธง ลองปักไว้ตรงทางแยกก่อนนะ");return}
+  if(G.pos===G.flag)return;
+  G.warp++;G.pos=G.flag;G.trail=G.flagTrail.slice();SFX.warp();
+  say("กลับมาที่ธงแล้ว วาร์ปไม่นับก้าว");drawG()}
+const SOL_MSG="เส้นชมพูคือทางที่ไปถึงเส้นชัย เส้นสีอื่นคือทางแยกที่แตกออกไปแล้วไม่ถึง";
+function giveUp(){if(!G||G.state==="won"||G.state==="gaveup")return;stopTimer();G.state="gaveup";SFX.giveUp();
+  $("gStatus").textContent=SOL_MSG+" รอบนี้ไม่นับสถิติ";startSol()}
+
+let solRaf=null;
+function solRun(n,R,B,s,e,onPath){const N=n*n,depth=new Int32Array(N).fill(-1),col=new Int8Array(N),edges=[];
+  depth[s]=0;const q=[s];let h=0,nc=0;
+  while(h<q.length){const c=q[h++];let kept=false;
+    for(const k of openNb(c,n,R,B)){if(depth[k]>=0)continue;depth[k]=depth[c]+1;
+      if(onPath[k])col[k]=0;
+      else if(!onPath[c]&&!kept){col[k]=col[c];kept=true}
+      else col[k]=1+(nc++%4);
+      edges.push([c,k,col[k],depth[k]]);q.push(k)}}
+  let D=0;for(const x of edges)if(x[3]>D)D=x[3];
+  return{n,s,e,edges,D,De:depth[e],t0:performance.now(),dur:Math.min(8,Math.max(2.5,D/45))*1000,done:false}}
+function buildSol(){return solRun(G.n,G.R,G.B,G.s,G.e,G.onPath)}
+function startSol(){stopSol();G.showSol=true;G.sol=buildSol();
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){G.sol.done=true;drawG();return}
+  const tick=()=>{if(!G||!G.sol)return;drawG();
+    if(performance.now()-G.sol.t0>G.sol.dur+700){G.sol.done=true;drawG();solRaf=null}else solRaf=requestAnimationFrame(tick)};
+  solRaf=requestAnimationFrame(tick)}
+function stopSol(){if(solRaf){cancelAnimationFrame(solRaf);solRaf=null}if(G){G.showSol=false;G.sol=null}}
+function drawSol(C,pad,cs,E){paintSol(gx,G.sol,pad,cs,E)}
+function paintSol(gx,S,pad,cs,E){const el=performance.now()-S.t0,n=S.n,ctr=c=>[pad+(c%n+.5)*cs,pad+(((c/n)|0)+.5)*cs];
+  let dcur=S.D,fade=1;
+  if(!S.done){if(el<S.dur){dcur=el/S.dur*S.D;fade=0}else fade=Math.min(1,(el-S.dur)/600)}
+  const pal=[tok("--path"),tok("--b1"),tok("--b2"),tok("--b3"),tok("--b4")],paths=pal.map(()=>new Path2D());
+  const top=[pad+((n>>1)+.5)*cs,pad*.4];
+  paths[0].moveTo(top[0],top[1]);paths[0].lineTo(...ctr(S.s));
+  for(const[a,b,c,d]of S.edges){if(d>dcur+1)break;const f=Math.min(1,dcur-(d-1));if(f<=0)continue;
+    const p=ctr(a),t=ctr(b);paths[c].moveTo(p[0],p[1]);paths[c].lineTo(p[0]+(t[0]-p[0])*f,p[1]+(t[1]-p[1])*f)}
+  if(dcur>=S.De){const ex=ctr(S.e);paths[0].moveTo(ex[0],ex[1]);paths[0].lineTo(ex[0],E+pad*.6)}
+  gx.save();gx.lineCap="round";gx.lineJoin="round";
+  gx.globalAlpha=0.9-0.5*fade;gx.lineWidth=Math.max(1.5,cs*.22);
+  for(let i=1;i<5;i++){gx.strokeStyle=pal[i];gx.stroke(paths[i])}
+  const hit=dcur>=S.De?Math.min(1,(dcur-S.De)/6+.4):0;
+  gx.globalAlpha=0.95;gx.lineWidth=Math.max(2,cs*(.3+.1*Math.max(fade,hit)));gx.strokeStyle=pal[0];gx.stroke(paths[0]);
+  gx.restore()}
+function line(pts,color,w,alpha){gx.save();gx.globalAlpha=alpha;gx.strokeStyle=color;gx.lineWidth=w;gx.lineCap="round";gx.lineJoin="round";
+  gx.beginPath();pts.forEach((p,i)=>i?gx.lineTo(p[0],p[1]):gx.moveTo(p[0],p[1]));gx.stroke();gx.restore()}
+function drawG(){
+  if(!G)return;
+  const dpr=window.devicePixelRatio||1,W=gcv.clientWidth||400;
+  if(gcv.width!==Math.round(W*dpr)){gcv.width=Math.round(W*dpr);gcv.height=Math.round(W*dpr)}
+  gx.setTransform(dpr,0,0,dpr,0,0);
+  const C={bg:tok("--surface"),ink:tok("--ink"),acc:tok("--accent"),path:tok("--path"),visit:tok("--visit"),fog:tok("--fog")};
+  const n=G.n,{pad,cs}=geom(W,n),E=pad+n*cs,ctr=c=>[pad+(c%n+.5)*cs,pad+(((c/n)|0)+.5)*cs];
+  gx.fillStyle=C.bg;gx.fillRect(0,0,W,W);
+  const over=G.state==="won"||G.state==="gaveup",wrongC=tok("--wrong");
+  for(let c=0;c<n*n;c++)if(G.seen[c]){gx.fillStyle=over&&!G.onPath[c]?wrongC:C.visit;gx.fillRect(pad+(c%n)*cs,pad+((c/n)|0)*cs,cs+.5,cs+.5)}
+  line([[pad+((n>>1)+.5)*cs,pad*.4],...G.trail.map(ctr)],C.acc,Math.max(2,cs*.26),G.showSol?.25:.55);
+  if(G.showSol&&G.sol)drawSol(C,pad,cs,E);
+  gx.strokeStyle=C.ink;gx.lineWidth=Math.min(3,Math.max(1,cs*.12));gx.lineCap="square";gx.beginPath();
+  for(let c=0;c<n*n;c++){const x=pad+(c%n)*cs,y=pad+((c/n)|0)*cs;
+    if(G.R[c]&&c%n<n-1){gx.moveTo(x+cs,y);gx.lineTo(x+cs,y+cs)}
+    if(G.B[c]&&c<n*n-n){gx.moveTo(x,y+cs);gx.lineTo(x+cs,y+cs)}}
+  const g0=pad+(n>>1)*cs,b0=pad+G.ex*cs;
+  gx.moveTo(pad,pad);gx.lineTo(g0,pad);gx.moveTo(g0+cs,pad);gx.lineTo(E,pad);
+  gx.moveTo(pad,E);gx.lineTo(b0,E);gx.moveTo(b0+cs,E);gx.lineTo(E,E);
+  gx.moveTo(pad,pad);gx.lineTo(pad,E);gx.moveTo(E,pad);gx.lineTo(E,E);gx.stroke();
+  const[px,py]=ctr(G.pos);
+  gx.fillStyle=C.acc;gx.beginPath();gx.arc(px,py,Math.max(3,cs*.32),0,Math.PI*2);gx.fill();
+  gx.strokeStyle=C.bg;gx.lineWidth=Math.max(1,cs*.07);gx.stroke();
+  if($("fog").checked&&G.state!=="won"&&G.state!=="gaveup"){
+    const r=Math.max(cs*3.2,36);gx.save();gx.fillStyle=C.fog;
+    gx.beginPath();gx.rect(0,0,W,W);gx.arc(px,py,r,0,Math.PI*2,true);gx.fill("evenodd");
+    gx.globalAlpha=.45;gx.beginPath();gx.arc(px,py,r,0,Math.PI*2);gx.arc(px,py,r*.72,0,Math.PI*2,true);gx.fill("evenodd");gx.restore()}
+  if(G.flag>=0){const[fx,fy]=ctr(G.flag),h=Math.max(10,cs*.7),w=h*.55,lx=fx-w*.35,top=fy-h*.55;
+    gx.strokeStyle=C.ink;gx.lineWidth=Math.max(1.5,h*.09);gx.lineCap="round";gx.beginPath();gx.moveTo(lx,top);gx.lineTo(lx,top+h);gx.stroke();
+    gx.fillStyle=tok("--front");gx.beginPath();gx.moveTo(lx,top);gx.lineTo(lx+w,top+h*.22);gx.lineTo(lx,top+h*.44);gx.closePath();gx.fill();
+    gx.strokeStyle=C.ink;gx.lineWidth=Math.max(1,h*.05);gx.stroke()}
+  const ar=Math.min(8,Math.max(4,pad*.35)),tx=g0+cs/2,bx=b0+cs/2;
+  gx.fillStyle=C.acc;gx.beginPath();gx.moveTo(tx-ar,pad-ar*1.6);gx.lineTo(tx+ar,pad-ar*1.6);gx.lineTo(tx,pad-ar*.3);gx.fill();
+  gx.fillStyle=C.path;gx.beginPath();gx.moveTo(bx-ar,E+ar*.3);gx.lineTo(bx+ar,E+ar*.3);gx.lineTo(bx,E+ar*1.6);gx.fill();
+}
+
+let dragging=false;
+function cellAt(e){const r=gcv.getBoundingClientRect(),{pad,cs}=geom(r.width,G.n);
+  const fx=(e.clientX-r.left-pad)/cs,fy=(e.clientY-r.top-pad)/cs,x=Math.floor(fx),y=Math.floor(fy);
+  if(x<0||y<0||x>=G.n||y>=G.n)return -1;
+  if(Math.abs(fx-x-.5)>.35||Math.abs(fy-y-.5)>.35)return -1;
+  return y*G.n+x}
+function shortPath(from,to,limit){const prev=new Map([[from,-1]]);let layer=[from];
+  for(let d=0;d<limit&&layer.length;d++){const next=[];
+    for(const c of layer)for(const q of openNb(c,G.n,G.R,G.B))if(!prev.has(q)){prev.set(q,c);
+      if(q===to){const p=[];let x=q;while(x!==from){p.unshift(x);x=prev.get(x)}return p}next.push(q)}
+    layer=next}
+  return null}
+function dirTo(a,b){const d=b-a;return d===1?"r":d===-1?"l":d===G.n?"d":"u"}
+function follow(e){if(!G)return;const t=cellAt(e);if(t<0||t===G.pos)return;const n=G.n;
+  const sp=shortPath(G.pos,t,2);
+  if(sp){for(const c of sp)if(!move(dirTo(G.pos,c)))break;return}
+  for(let k=0;k<n*2&&G.pos!==t;k++){const px=G.pos%n,py=(G.pos/n)|0,dx=t%n-px,dy=((t/n)|0)-py;
+    const h=dx>0?"r":"l",v=dy>0?"d":"u";
+    const order=Math.abs(dx)>=Math.abs(dy)?[dx&&h,dy&&v]:[dy&&v,dx&&h];
+    let moved=false;for(const d of order)if(d&&move(d)){moved=true;break}
+    if(!moved)break}}
+gcv.addEventListener("pointerdown",e=>{dragging=true;try{gcv.setPointerCapture(e.pointerId)}catch(_){}gcv.focus({preventScroll:true});follow(e)});
+gcv.addEventListener("pointermove",e=>{if(dragging)follow(e)});
+["pointerup","pointercancel"].forEach(t=>gcv.addEventListener(t,()=>{dragging=false}));
+
+const KEYS={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r",KeyW:"u",KeyS:"d",KeyA:"l",KeyD:"r"};
+const KEYS_FALLBACK={w:"u",s:"d",a:"l",d:"r",W:"u",S:"d",A:"l",D:"r","ไ":"u","ห":"d","ฟ":"l","ก":"r",f:"F",F:"F","ด":"F",r:"R",R:"R","พ":"R"};
+document.addEventListener("keydown",e=>{
+  if($("viewPlay").hidden||e.metaKey||e.ctrlKey||e.altKey||e.isComposing)return;
+  const t=e.target,tag=t&&t.tagName,typ=t&&t.type;
+  if(tag==="TEXTAREA"||(tag==="INPUT"&&typ!=="checkbox"&&!(typ==="range"&&!e.key.startsWith("Arrow"))))return;
+  const k=e.code==="KeyF"?"F":e.code==="KeyR"?"R":KEYS[e.code]||KEYS[e.key]||KEYS_FALLBACK[e.key];
+  if(!k)return;e.preventDefault();
+  if(k==="F"){if(!e.repeat)setFlag();return}
+  if(k==="R"){if(!e.repeat)backToFlag();return}
+  const d=k;
+  if(!move(d)&&!e.repeat&&G&&(G.state==="ready"||G.state==="play"))SFX.bump()});
+const dpad=document.querySelector(".dpad");let dDir=null,dPid=null,dTo=null,dIv=null;
+function dirAt(e){const r=dpad.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+  if(Math.abs(dx)<8&&Math.abs(dy)<8)return null;
+  return Math.abs(dx)>Math.abs(dy)?(dx>0?"r":"l"):(dy>0?"d":"u")}
+function markPad(){dpad.querySelectorAll(".dbtn").forEach(b=>b.classList.toggle("on",b.dataset.d===dDir))}
+function press(d){if(d===dDir)return;clearTimeout(dTo);clearInterval(dIv);dDir=d;markPad();if(!d)return;
+  if(!move(d)&&G&&(G.state==="ready"||G.state==="play"))SFX.bump();
+  dTo=setTimeout(()=>{dIv=setInterval(()=>move(d),110)},280)}
+function releasePad(){clearTimeout(dTo);clearInterval(dIv);dDir=null;dPid=null;markPad()}
+dpad.addEventListener("pointerdown",e=>{e.preventDefault();dPid=e.pointerId;try{dpad.setPointerCapture(e.pointerId)}catch(_){}press(dirAt(e))});
+dpad.addEventListener("pointermove",e=>{if(e.pointerId===dPid)press(dirAt(e))});
+["pointerup","pointercancel","lostpointercapture"].forEach(t=>dpad.addEventListener(t,e=>{if(e.pointerId===dPid)releasePad()}));
+dpad.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",e=>{if(e.detail===0)move(b.dataset.d)}));
+
+const LV_MAXL={easy:6,mid:9,hard:14,hell:20};
+function setGMinL(v){$("gMinL").max=LV_MAXL[lv];$("gMinL").value=v;$("gMinLOut").textContent=v+" ช่อง"}
+document.querySelectorAll("[data-lv]").forEach(b=>b.addEventListener("click",()=>{lv=b.dataset.lv;
+  document.querySelectorAll("[data-lv]").forEach(x=>x.setAttribute("aria-pressed",x===b));setGMinL(LV_MINL[lv]);newGame()}));
+$("galgo").innerHTML=Object.entries(GROUPS).map(([g,label])=>`<optgroup label="${label}">${ALGOS.filter(a=>a.g===g).map(a=>`<option value="${a.id}"${a.id===galgo?" selected":""}>${a.name}</option>`).join("")}</optgroup>`).join("");
+function galgoLabel(){$("galgoNote").textContent=GNOTE[galgo]}
+$("galgo").addEventListener("change",()=>{galgo=$("galgo").value;galgoLabel();newGame()});
+galgoLabel();setGMinL(LV_MINL[lv]);
+$("gMinL").addEventListener("input",()=>{$("gMinLOut").textContent=$("gMinL").value+" ช่อง"});
+$("gMinL").addEventListener("change",newGame);
+function loopsLabel(){const b=LOOPS[+$("loops").value];$("loopsOut").textContent=b.name;$("loopsNote").textContent=b.note}
+$("loops").addEventListener("input",loopsLabel);
+$("loops").addEventListener("change",newGame);
+loopsLabel();
+$("fog").addEventListener("change",newGame);
+$("gNew").addEventListener("click",newGame);
+$("gGive").addEventListener("click",giveUp);
+$("gFlag").addEventListener("click",setFlag);
+$("gBack").addEventListener("click",backToFlag);
+$("wNext").addEventListener("click",newGame);
+$("wSol").addEventListener("click",()=>{const on=!G.showSol;if(on){startSol();$("gStatus").textContent=SOL_MSG}else{stopSol();$("gStatus").textContent="";drawG()}
+  $("wSol").setAttribute("aria-pressed",on);$("wSol").textContent=on?"ซ่อนเฉลย":"ดูเฉลยเทียบ"});
+function showControls(on){document.querySelector(".dpad").hidden=!on;document.querySelector(".flagrow").hidden=!on;document.querySelector(".hint").hidden=!on}
+
+function setView(v){
+  $("viewLab").hidden=v!=="lab";$("viewPlay").hidden=v!=="play";
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.v===v));
+  if(v==="play"){if(!G)newGame();else drawG()}else draw();
+  try{history.replaceState(null,"","#"+v)}catch(e){}
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setView(t.dataset.v)));
+addEventListener("resize",drawG);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>requestAnimationFrame(drawG));
+new MutationObserver(()=>requestAnimationFrame(drawG)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+setView(location.hash==="#play"?"play":"lab");
+</script>
+
+</body>
+</html>

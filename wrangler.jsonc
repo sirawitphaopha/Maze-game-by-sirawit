@@ -1,0 +1,39 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+
+	// 🔴 ชื่อนี้ต้องตรงกับชื่อ Worker บนหน้า Cloudflare เป๊ะ
+	//    ไม่ตรง = ตอนเอาขึ้นจะไปสร้างเว็บใหม่อีกอัน แทนที่จะทับของเดิม
+	//    พี่กันเป็นคนเอาขึ้น Cloudflare เอง แคลร์ไม่กดขึ้นเว็บ (สกิล working-with-gun ข้อ 4.1)
+	"name": "maze-lab",
+
+	"main": ".open-next/worker.js",
+
+	// วันที่ล็อกรุ่นเครื่องยนต์ ตั้งแล้วห้ามขยับเล่น
+	"compatibility_date": "2026-10-01",
+
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS",
+		// 🚨🔴 ห้ามเอาออก ค่าตั้งต้นของ Cloudflare คือ false
+		//    แปลว่าตัวจ่ายไฟล์นิ่งทำงานก่อนโค้ดของเรา ไฟล์ใน public/ ถูกหยิบได้โดยไม่ผ่านประตูรหัสผ่าน
+		//    (สกิล db-safety ข้อ 35 · ยกจาก ME-DRP)
+		"run_worker_first": true
+	},
+
+	"observability": {
+		"logs": {
+			"enabled": true,
+			"invocation_logs": true
+		}
+	}
+
+	// ตั้งค่าลับบน Cloudflare → Workers → maze-lab → Settings → Variables and Secrets (ชนิด Secret ทุกตัว)
+	//   SUPABASE_URL                ที่อยู่ฐานข้อมูล tb-calculator
+	//   SUPABASE_SERVICE_ROLE_KEY   กุญแจฝั่งเซิร์ฟเวอร์ ผ่านทุกด่านของฐาน ห้ามหลุด
+	//   MAZE_PASSWORD               รหัสผ่านเข้าเว็บ ไม่ตั้ง = เว็บตอบ 503 ทั้งเว็บ
+	//   MAZE_AUTH_SECRET            ความลับสำหรับลงลายเซ็นบัตรผ่าน (สุ่มยาว ๆ)
+	// ตั้งแล้วต้องสั่งสร้างเว็บใหม่ (Retry build) ถึงมีผล
+	// 🚨 ชื่อที่ขึ้นต้นด้วย NEXT_PUBLIC_ เบราว์เซอร์เห็นได้ ห้ามใช้กับกุญแจ
+}

@@ -1,0 +1,82 @@
+/* ── หน้าจอมือถือ (สกิล mobile-web-app) ──
+   🔴 ทุกกฎในไฟล์นี้ขึ้นต้นด้วย .mz-mobile ไม่มีข้อยกเว้น (คลาสอยู่ที่ <html> ใส่โดยสคริปต์ในหัวเว็บ app/layout.tsx)
+   ยกเว้นบล็อก @media (max-width: 759px) ท้ายไฟล์ ซึ่งต้องทำงานตั้งแต่วินาทีแรกก่อนสคริปต์ใส่คลาส (กันซูมกับกันลากข้าง)
+   ธงมือถือ = จอกว้างไม่ถึง 760px · ตัวเลขนี้ต้องตรงกับ MOBILE_Q ใน app/layout.tsx เสมอ แก้ที่หนึ่งต้องแก้อีกที่
+   หน้าคอม (กว้าง 1000 ขึ้นไป) ห้ามขยับแม้แต่ 1px · ช่วง 760 ถึง 999 ใช้หน้าตาเดิมของ globals.css */
+
+/* ทั้งหน้า ตัดของที่ยื่นเกินขอบจอทิ้งจริง (clip ไม่ใช่ hidden เบราว์เซอร์จึงเลื่อนตามโฟกัสไม่ได้) */
+html.mz-mobile, .mz-mobile body { overflow-x: clip; }
+.mz-mobile .wrap { margin-top: 6px; gap: 6px; }
+
+/* ปุ่มยุบตอนกด รู้ทันทีว่านิ้วโดน (จอสัมผัสไม่มี hover) · แตะสองครั้งไม่ซูม · แตะปุ่มแล้วตัวหนังสือไม่ถูกไฮไลต์ */
+.mz-mobile :is(button, .btn, .tab, a.tab):not(:disabled):active { scale: .97; }
+.mz-mobile :is(button, .btn, .tab) { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.mz-mobile * { -webkit-tap-highlight-color: transparent; }
+
+/* ช่องกรอกไม่ต่ำกว่า 16px ไม่งั้น iPhone ซูมเองตอนแตะแล้วไม่ซูมกลับ · ข้อความใบ้ในช่องไม่โดนตัดวรรณยุกต์ */
+.mz-mobile :is(select, textarea, input:not([type="range"]):not([type="checkbox"]):not([type="radio"])) { font-size: 16px; }
+.mz-mobile :is(input, textarea)::placeholder { line-height: inherit !important; }
+
+/* ── แถบบน 3 แถว แถวแรกไอคอน ชื่อเว็บ เลขรุ่น ปุ่มสลับโหมดชิดขวา · แถวสองคำโปรยเต็มความกว้าง · แถวสามแท็บกับปุ่มออกจากระบบ ──
+   กล่องชื่อเว็บกับกล่องปุ่มขวาใช้ display: contents ลูกข้างในจึงเรียงแถวใหม่ด้วย order ได้โดยไม่แตะโครงหน้าคอม */
+.mz-mobile .appbar { padding-block: 6px 8px; }
+.mz-mobile .appbar-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.mz-mobile .appbar-in > .brand, .mz-mobile .appbar-in > .who, .mz-mobile .who > .whorow { display: contents; }
+.mz-mobile .brand > * { order: 1; }
+.mz-mobile .brand h1 { font-size: 19px; }
+.mz-mobile .brand .logo { width: 26px; height: 26px; }
+.mz-mobile .brand .bsep { display: none; }
+.mz-mobile .whorow .themebtn { order: 2; margin-left: auto; }
+.mz-mobile .brand p { order: 3; flex: 1 0 100%; font-size: 12px; margin-top: -2px; }
+.mz-mobile .appbar-in > .tabs { order: 4; flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mz-mobile .tabs .tab { display: flex; align-items: center; justify-content: center; min-height: 38px; padding-inline: 6px; }
+.mz-mobile .whorow .out { order: 5; align-self: stretch; padding-inline: 10px; }
+.mz-mobile .who .outwhy { order: 6; flex: 1 0 100%; text-align: left; }
+
+/* ── หน้าเล่นเกม กระดานเต็มความกว้าง ปุ่มลูกศรกระชับลงให้เห็นคู่กับกระดานมากที่สุด ── */
+.mz-mobile .playpage .dpad { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, 62px); gap: 8px; width: 100%; max-width: 320px; margin-inline: auto; }
+.mz-mobile .playpage .flagrow { max-width: none; }
+.mz-mobile .playpage .fbtn { min-height: 48px; font-size: 15px; }
+.mz-mobile .keyhelp { font-size: 12px; gap: 2px 10px; }
+
+/* ── ตัวดูย้อน ปุ่มเล่นกับปุ่มกลับไปจุดเริ่มแถวหนึ่ง ปุ่มเร่งเวลาอีกแถว ไม่ล้นจอ ── */
+.mz-mobile .rtop .playbar .pbtns { flex-wrap: wrap; gap: 8px; }
+.mz-mobile .rtop .playbar .pbtns .btn { flex: 1 1 0; min-height: 46px; }
+.mz-mobile .rtop .playbar .playbtn { min-width: 0; }
+.mz-mobile .rtop .playbar .pbtns .speed { flex: 1 0 100%; grid-template-columns: repeat(4, 1fr); }
+.mz-mobile .rtop .playbar .pbtns .speed button { min-height: 42px; }
+
+/* ── หน้าประวัติ หัวข้อไม่ต้องเว้นตามไอคอน (บนมือถือชื่อเว็บกับหัวข้อขนาดต่างกันมาก) ── */
+.mz-mobile .histhead h2 { margin-inline-start: 0; }
+
+/* ── ป๊อปยืนยัน เลื่อนขึ้นจากขอบล่างแบบแอป นิ้วโป้งกดต่อได้ทันที ── */
+.mz-mobile .cdback { align-items: flex-end; padding: 0; }
+.mz-mobile .cdbox { max-width: none; border-radius: 20px 20px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: mz-sheet-up .42s cubic-bezier(.16, 1.16, .3, 1) both; }
+@keyframes mz-sheet-up { from { transform: translateY(110%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mz-mobile .cdbox { animation: none; } }
+
+/* ── กันซูมและกันลากข้าง ต้องทำงานตั้งแต่วินาทีแรก จึงผูกกับความกว้างจอ ไม่ผูกกับคลาส (สกิล mobile-web-app "ห้ามซูมทุกเว็บ") ──
+   touch-action ไม่สืบทอดลงลูก ต้องครอบ body * · กระดานกับปุ่มลูกศรรับนิ้วเอง (none) · ตารางกับใบงานเลื่อนข้างได้ */
+@media (max-width: 759px) {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html, body, body * { touch-action: pan-y !important; }
+  .board, .dpad, .dpad * { touch-action: none !important; }
+  .tablewrap, .tablewrap *, .paperscroll, .paperscroll * { touch-action: pan-x pan-y !important; }
+}
+
+/* ไอคอนกับเลขรุ่นไม่ชิดชื่อเว็บเกินไป (หน้าคอมใช้ช่องไฟ 14px หักลบ 6px · มือถือช่องไฟ 8px จึงไม่ต้องหัก) */
+.mz-mobile .brand .logo { margin-right: 0; }
+.mz-mobile .brand .ver { margin-left: 0; }
+
+/* ปุ่มปักธง กลับไปที่ธง พักเกม แถวเดียวไม่ตัดคำ · ป้ายแป้นลัดไม่ต้องมีบนมือถือ (ไม่มีคีย์บอร์ด) */
+.mz-mobile .playpage .fbtn { white-space: nowrap; gap: 6px; padding-inline: 6px; font-size: 14px; }
+.mz-mobile .playpage .fbtn .kc, .mz-mobile .keyhelp .kc { display: none; }
+
+/* แถวปุ่มด่านใหม่ ดูเฉลย พิมพ์ใบงาน จอแคบ 360 ปุ่มพิมพ์ใบงานโดนตัด ให้ปุ่มด่านใหม่เต็มแถวบน อีกสองปุ่มแบ่งแถวล่าง */
+.mz-mobile .pg-set > .row { flex-wrap: wrap; }
+.mz-mobile .pg-set > .row > .btn { flex: 1 1 0; min-width: 0; white-space: nowrap; min-height: 46px; }
+.mz-mobile .pg-set > .row > .btn.primary { flex-basis: 100%; }
+
+/* ปุ่มสลับภาษาอยู่ชิดขวาแถวแรกคู่กับปุ่มสลับโหมด */
+.mz-mobile .whorow .langbtn { order: 2; margin-left: auto; }
+.mz-mobile .whorow .langbtn ~ .themebtn { margin-left: 0; }

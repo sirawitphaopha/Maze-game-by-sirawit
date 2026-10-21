@@ -1,0 +1,34 @@
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# ตัวแปรลับ ห้ามขึ้น git เด็ดขาด
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# เครื่องมือและระบบ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+.wrangler/
+.vercel/
+
+# Next.js
+next-env.d.ts
+*.pem
+/coverage
+
+# ผลผลิตของตัวแปลง Cloudflare สร้างใหม่ได้ทุก build
+.open-next/
+
+# ผลของตัวตรวจใบงาน (scripts/print-check.mjs)
+/out/
