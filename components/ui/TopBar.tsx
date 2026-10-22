@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { pendingServerSnapshot, pendingSnapshot, subscribePending } from "@/lib/games";
+import { isWaiting, pendingServerSnapshot, pendingSnapshot, subscribePending } from "@/lib/games";
 import Icon from "@/components/ui/Icon";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import LangToggle from "@/components/ui/LangToggle";
@@ -30,6 +30,7 @@ export default function TopBar() {
   // เผลอกดแท็บอื่นระหว่างเล่นเกม ถามก่อนออก (พี่กันสั่ง 21 ต.ค. 2569 "เล่นเกมอยู่ แล้วเผลอกดไปแถบอื่น มันต้องเตือนด้วยนะ")
   // เตือนเฉพาะตอนนาฬิกาเดินแล้วและยังไม่จบ · ยังไม่ก้าวแรกหรือชนะแล้วไปได้เลย
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const [askOut, setAskOut] = useState(false);
   const items = useSyncExternalStore(subscribePending, pendingSnapshot, pendingServerSnapshot);
   const [busy, setBusy] = useState(false);
   const ro = useRef<ResizeObserver | null>(null);
@@ -75,7 +76,12 @@ export default function TopBar() {
   }, []);
 
   if (path === "/login") return null;
+  // ปุ่มออกจากระบบกดไม่ได้ตลอดที่ยังมีเกมในคิว รวมเกมที่หน้าเล่นเกมกำลังส่งรอบแรก (ออกตอนนั้นเกมอาจหาย)
+  // แต่ข้อความบอกเหตุผลขึ้นเฉพาะเกมที่รอส่งจริง แบบเดียวกับแถบรอส่ง (PendingBar · isWaiting)
+  // เดิมข้อความขึ้นช่วงที่เกมเพิ่งชนะกำลังส่ง ไม่ถึงวินาที แถบบนสูงขึ้นแล้วหดกลับ ทั้งหน้ากับกระดานกระตุก
+  // (พี่กันทัก 22 ต.ค. 2569 "เราเล่นเกมจบแล้ว เรารู้สึกว่ามันกระตุก แล้วตัวเว็บมันขยับ" · "มันมีแถบอะไรสักอย่างขึ้นเร็วๆตรงเส้นนี้")
   const blocked = items.length > 0;
+  const waiting = items.filter((x) => isWaiting(x));
   const onReplay = path.startsWith("/history/");
   // กดแท็บระหว่างเล่นเกม ถามก่อนออก · ใช้ทั้งแท็บบนจอคอมและรายการเมนูบนมือถือ
   const onTab = (e: React.MouseEvent<HTMLAnchorElement>, t: (typeof TABS)[number]) => {
@@ -133,7 +139,7 @@ export default function TopBar() {
             <button type="button" className="iconbtn mmenu" hidden aria-label="เลือกแท็บ" title="เลือกแท็บ" aria-haspopup="menu" aria-expanded={menu} aria-controls="mmenu-list" onClick={() => setMenu((m) => !m)}>
               <Icon name={menu ? "x" : "menu"} size={18} />
             </button>
-            <button type="button" className="out" onClick={logout} disabled={blocked || busy}>
+            <button type="button" className="out" onClick={logout} disabled={blocked || busy} title={waiting.length > 0 ? `ยังมีเกมรอส่ง ${waiting.length} เกม ออกจากระบบไม่ได้จนกว่าจะส่งเข้าระบบครบ` : undefined}>
               {busy ? "กำลังออก" : "ออกจากระบบ"}
             </button>
           </div>
@@ -147,7 +153,18 @@ export default function TopBar() {
               onCancel={() => setLeaveTo(null)}
             />
           )}
-          {blocked && <div className="outwhy">ยังมีเกมรอส่ง {items.length} เกม ออกจากระบบไม่ได้จนกว่าจะส่งเข้าระบบครบ</div>}
+          {askOut && (
+            <ConfirmDialog
+              title="กำลังเล่นเกมอยู่ ต้องการออกจากระบบหรือไม่"
+              lines={["เกมที่เล่นอยู่จะหายและไม่บันทึก"]}
+              confirmLabel="ออกจากระบบ"
+              cancelLabel="เล่นต่อ"
+              onConfirm={() => { setAskOut(false); void logout(); }}
+              onCancel={() => setAskOut(false)}
+            />
+          )}
+          {/* ข้อความเกมรอส่งเอาออกจากแถบบนแล้ว ขึ้นทีไรแถบบนสูงขึ้น ทั้งหน้ากับกระดานเลื่อน (พี่กันสั่ง 22 ต.ค. 2569 "ไม่ต้องมี ไม่ก็ไปหาที่ไว้ที่อื่นที่ไม่ทำให้เว็บเราเลื่อน")
+              เหตุผลอยู่ที่ป้ายตอนชี้ปุ่มออกจากระบบ (title) · รายชื่อเกมที่รอส่งอยู่ในแถบรอส่งใต้แถบบนตามเดิม */}
           {/* รายการที่กางลงจากปุ่มเลือกแท็บ (มือถือ) · เล่นเกมอยู่บนสุด (พี่กันสั่ง "ปุ่มเล่นเกมจะแสดงอย่างแรก") */}
           {menu && (
             <div className="mmenu-list" id="mmenu-list" role="menu" aria-label="เลือกแท็บ">
@@ -156,8 +173,9 @@ export default function TopBar() {
                   {t.label}{t.match(path) && <Icon name="check" size={16} />}
                 </Link>
               ))}
-              <button type="button" role="menuitem" className="mitem mout" onClick={logout} disabled={blocked || busy}>{busy ? "กำลังออก" : "ออกจากระบบ"}</button>
-              {blocked && <div className="mwhy">ยังมีเกมรอส่ง {items.length} เกม ออกจากระบบไม่ได้จนกว่าจะส่งเข้าระบบครบ</div>}
+              {/* เล่นเกมอยู่ ถามก่อนออก เกมที่เล่นอยู่จะหาย (รายงานมือถือข้อ 7 · ปุ่มนี้มีแค่ในเมนูมือถือ ปุ่มออกบนจอคอมเหมือนเดิม) */}
+              <button type="button" role="menuitem" className="mitem mout" onClick={() => { if (playMem.G?.status === "play") { setMenu(false); setAskOut(true); } else void logout(); }} disabled={blocked || busy}>{busy ? "กำลังออก" : "ออกจากระบบ"}</button>
+              {waiting.length > 0 && <div className="mwhy">ยังมีเกมรอส่ง {waiting.length} เกม ออกจากระบบไม่ได้จนกว่าจะส่งเข้าระบบครบ</div>}
             </div>
           )}
         </div>

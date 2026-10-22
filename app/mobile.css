@@ -119,7 +119,7 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 .mz-mobile .startcover .btn { flex: none; width: auto; min-height: 58px; padding-inline: 36px; border-radius: 16px; font-size: 19px; gap: 10px; box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent); }
 
 /* แผ่นตั้งค่าด่านกับวิธีเล่น เลื่อนขึ้นจากขอบล่าง (พี่กันสั่ง "ทำเป็นปุ่มกดดู จะไม่อยู่หน้าเล่นเกม") · ปุ่มพิมพ์ใบงานไม่มีบนมือถือ */
-.mz-mobile .playpage .pg-set, .mz-mobile .playpage .pg-ctrl > .keyhelp, .mz-mobile .printbtn { display: none; }
+.mz-mobile .playpage .pg-set, .mz-mobile .playpage .pg-ctrl > .keyhelp, .mz-mobile .playpage .pg-ctrl > .helpbtn, .mz-mobile .playpage .pg-ctrl > .helprow, .mz-mobile .printbtn { display: none; }
 .mz-mobile .playpage[data-sheet="set"] .pg-set {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 85; max-height: 86dvh; overflow-y: auto; overscroll-behavior: contain;
   margin: 0; padding: 0 16px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--surface);
@@ -279,6 +279,10 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
      บรรทัดเดียวยังสูง 26 เท่าแถวเวลากับก้าว
    · ข้อความพักเกมไม่ขึ้น ม่านพักบนวงกตบอกอยู่แล้ว (พักเกมไว้ เวลาไม่เดินระหว่างนี้)
    · เกมจบแล้ว (ended) บรรทัดสถานะไม่ขึ้นเลย คำอธิบายเฉลยไปอยู่ที่อื่น (กฎถัดไป) */
+/* 🔴 22 ต.ค. 2569 ค่ำ เอาข้อความระหว่างเล่นออกแล้วทั้งมือถือและจอคอม ไม่ขึ้นเลย ป้ายลอยทับแถวเวลาบังตัวเลข
+   (พี่กันสั่งบนจอคอม "ขึ้นมาบังทำไม" "เอาออก ไม่ได้บอกให้เอามาใส่ตรงนี้" "ไม่ก็ไม่ต้องบอกอะไร" แล้วสั่ง "ที่ว่ามาทั้งหมดนี่ มือถือก็ต้องแก้นะ มันคืออันเดียวกัน")
+   กฎป้ายลอยด้านล่างเก็บไว้เป็นประวัติ ถูกกฎซ่อนบรรทัดถัดไปทับ · ห้ามเอาข้อความระหว่างเล่นกลับมา */
+.mz-mobile .playpage:not(.ended) .pg-hud > .status { display: none !important; }
 .mz-mobile .playpage:not(.ended) .pg-hud { position: relative; }
 .mz-mobile .playpage:not(.ended) .status:not(:empty) { position: absolute; top: 0; left: 0; right: 0; z-index: 4; width: fit-content; max-width: 100%; min-height: 0; margin-inline: auto; padding: 3px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--ink) 35%, transparent); font-size: 13.5px; line-height: 18px; color: var(--ink); text-align: center; pointer-events: none; }
 .mz-mobile[data-lang="en"] .playpage:not(.ended) .status:not(:empty) { padding-block: 4px; line-height: 16px; }
@@ -296,6 +300,15 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 .mz-mobile .playpage .solnote { position: absolute; inset: 0 0 60px; z-index: 2; flex-direction: column; align-items: center; justify-content: center; margin: 0; padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 15px; line-height: 1.7; color: var(--ink); text-align: center; text-wrap: pretty; }
 .mz-mobile .playpage .pg-ctrl:has(> .solnote) > .dpad { visibility: hidden; }
 .mz-mobile .playpage .wincard > .savestate { order: 1; }
+/* บรรทัดก้าวเกินในคำอธิบายเอาออก ใช้กล่องก้าวเกินแทน แบบเดียวกับจอคอม (components/game/ResultCard.tsx · พี่กันสั่ง 22 ต.ค. 2569
+   "เราบอกว่าเอาอันนี้ออกไง แล้วไปเพิ่มการ์ดอีกอันเรื่องจำนวนก้าวที่ผิด" · "อันไหนโมบายต้องปรับ ก็ต้องปรับ")
+   กล่องเวลา ก้าวทั้งหมด ยังขึ้น เพราะมือถือชนะแล้วหน้าเลื่อนลงหาการ์ด แถวเวลา ก้าว ด้านบนพ้นจอไป ไม่ซ้ำกันบนจอ
+   ห้ากล่อง สองแถวเท่าเดิม ไม่เพิ่มแถว (พี่กันสั่ง "ห้ามเพิ่มบรรทัด") แถวบน เวลา ก้าวทั้งหมด ก้าวเกิน · แถวล่าง ทางแยก เลี้ยวผิด */
+/* ป้ายสถิติใหม่ลงบรรทัดใต้หัวข้อเสมอ ป้ายบันทึกเล็กลอยมุมขวาของแถวหัวข้อไม่ทับป้ายสถิติ แบบเดียวกับจอคอม (พี่กันสั่ง 22 ต.ค. 2569 "ไปแก้สิ") */
+.mz-mobile .playpage .wincard .whead > .pills { flex-basis: 100%; }
+.mz-mobile .playpage .wincard .wstats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.mz-mobile .playpage .wincard .wstats > div { grid-column: span 2; }
+.mz-mobile .playpage .wincard .wstats > div:nth-child(n + 4) { grid-column: span 3; }
 .mz-mobile .playpage .wsolnote[hidden] { display: block !important; order: 2; }
 .mz-mobile .playpage .wsolnote { margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--muted); }
 /* เลขคะแนนในการ์ดผลนับขึ้นจาก 0 แต่กันที่ไว้เท่าจำนวนหลักของคะแนนจริงตั้งแต่แรก (data-w ใน components/game/ResultCard.tsx)
@@ -370,3 +383,26 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 .mz-mobile table.games td:nth-child(3) .lvpill { order: 2; }
 .mz-mobile table.games td:nth-child(3) .mut { order: 1; }
 .mz-mobile table.games td:nth-child(3) .mut { margin: 0; }
+
+/* ป้ายบันทึกเล็กข้างหัวข้อการ์ดชนะ ย้ายไป app/globals.css แล้ว (22 ต.ค. 2569 พี่กันสั่งให้จอคอมเป็นแบบเดียวกัน "ไปปรับในเดสท็อปด้วย") */
+
+/* หน้าเล่นเกมไม่เด้งเกินขอบตามนิ้ว (พี่กันทัก 22 ต.ค. 2569 "มันไม่ควรเลื่อนเพจได้จนมีที่ว่างแบบนี้" พร้อมภาพดึงลงสุดเห็นที่ว่างเหนือแถบบน กับดันขึ้นสุดเห็นที่ว่างใต้การ์ดชนะ)
+   วัดในโครมกว้าง 430 แล้ว หน้าสูงเท่าจอพอดี ไม่มีที่ว่างจริง ที่เห็นคือการเด้งของ iPhone ค่าตั้งต้น · iOS 16 ขึ้นไปปิดได้ด้วย overscroll-behavior ที่ราก
+   ปิดเฉพาะหน้าเล่นเกม หน้าอื่นยังเด้งตามเดิม · ปิดการดึงลงเพื่อรีเฟรชของ Chrome แอนดรอยด์บนหน้านี้ไปด้วย */
+.mz-mobile:has(.playpage), .mz-mobile:has(.playpage) body { overscroll-behavior: none; }
+
+/* บั๊กมือถือจากรายงานตรวจ docs/MOBILE-REVIEW-2026-10-21.md (พี่กันสั่ง 22 ต.ค. 2569 "แก้ bug ที่พูดมาเมื่อคืนด้วย") */
+/* ข้อ 9 หน้าดูย้อน จอแคบกว่า 380 แถวเวลา ก้าว เลี้ยวผิด วางป้ายเหนือตัวเลข เวลาไม่ชนเส้นแบ่ง ภาษาอังกฤษไม่ตกสองบรรทัด */
+@media (max-width: 379px) { .mz-mobile .rtop .hud > div { flex-direction: column; align-items: center; gap: 0; padding: 6px 4px; } }
+/* ข้อ 10 ไอคอนมุมซ้ายบนตรงขอบเนื้อหา 16 จุด (globals ลบช่องไฟ 14 ของจอคอม มือถือช่องไฟ 6) */
+.mz-mobile .backslot { margin-right: -6px; }
+.mz-mobile .backslot.on { margin-right: 0; }
+/* ข้อ 13 ป้ายในการ์ดประวัติไม่ถูกตัดกลางคำ ค่าตกบรรทัดเอง */
+.mz-mobile table.games td[data-label]::before { white-space: nowrap; }
+/* ข้อ 14 ค่าของแถบเลื่อนในห้องทดลองไม่แตกบรรทัด */
+.mz-mobile .lbl b { white-space: nowrap; }
+/* ข้อ 15 ช่องติ๊กไม่โดนบีบแบนเมื่อข้อความข้างตกสองบรรทัด */
+.mz-mobile .chk input { flex: none; }
+/* แถบบอกผลของเกมก่อนหน้าขึ้นระหว่างเล่น เดิมลอยทับแถวปุ่มธง กดพลาดได้ (ค้างจากรอบ 22 ต.ค. เช้า docs/SESSION-2026-10-22.md)
+   ระหว่างเล่นย้ายไปลอยใต้แถบบน ทับแถวเวลากับก้าวแทน ไม่บังปุ่ม · เกมจบแล้วกลับไปล่างจอตามเดิม */
+.mz-mobile body:has(.playpage:not(.ended)) .banner { bottom: auto; top: calc(var(--bar-h, 56px) + 6px); }

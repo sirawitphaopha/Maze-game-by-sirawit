@@ -20,6 +20,7 @@ body { margin: 0; }
   --danger: #B4322F; --danger-soft: #FBE7E6; --danger-line: #E7A9A6;
   --ok-bg: #0F6D55; --warn-bg: #7A5410; --err-bg: #A62A2A; --prog-bg: #3D3A35;
   --pend-bg: #FFF4DC; --pend-ink: #7A5410; --pend-line: #E9CF94;
+  --flag-bg: #FFE27A; --flag-ink: #5C4300; --flag-line: #E0B400;
   --done-bg: #E3F4EC; --done-ink: #17654D;
   --skel: #DDE9ED;
   --warm1: #E8590C; --warm2: #D6336C;
@@ -49,6 +50,7 @@ body { margin: 0; }
     --accent-hover: #7DD6EA; --accent-soft-2: #174759; --press-bg: #1E6278; --line-hover: #4A8DA3;
     --danger: #FF8E86; --danger-soft: #3A1C21; --danger-line: #7A3A40;
     --pend-bg: #3A2C10; --pend-ink: #F2C877; --pend-line: #6B5420;
+    --flag-bg: #5A4600; --flag-ink: #FFE27A; --flag-line: #C9A200;
     --done-bg: #12332A; --done-ink: #7FD9B6;
     --skel: #1A2F37;
     --warm1: #FF922B; --warm2: #F06595; --sea2: #5EE0D2; --grad2: #5EE0D2; --pink2: #FFB3CD;
@@ -67,6 +69,7 @@ body { margin: 0; }
   --accent-hover: #7DD6EA; --accent-soft-2: #174759; --press-bg: #1E6278; --line-hover: #4A8DA3;
   --danger: #FF8E86; --danger-soft: #3A1C21; --danger-line: #7A3A40;
   --pend-bg: #3A2C10; --pend-ink: #F2C877; --pend-line: #6B5420;
+  --flag-bg: #5A4600; --flag-ink: #FFE27A; --flag-line: #C9A200;
   --done-bg: #12332A; --done-ink: #7FD9B6;
   --skel: #1A2F37;
   --warm1: #FF922B; --warm2: #F06595; --sea2: #5EE0D2; --grad2: #5EE0D2; --pink2: #FFB3CD;
@@ -273,6 +276,24 @@ select:hover { border-color: var(--line-hover); }
 @media (hover: none) { .kc { display: none; } }
 .flagico { width: 14px; height: 18px; border-left: 2.5px solid currentColor; position: relative; flex: none; }
 .flagico::after { content: ""; position: absolute; left: 0; top: 1px; border-left: 11px solid var(--front); border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; }
+/* ปุ่มปักธง ปักแล้ววงคลื่นแผ่ออกจากปุ่มหนึ่งครั้ง (วอ้ง) แล้วปุ่มเป็นสีเหลืองค้างไว้ตลอดที่ยังมีธง ปักใหม่ก็วอ้งอีกรอบ
+   (พี่กันสั่ง 22 ต.ค. 2569 "ถ้าปักธงแล้ว ปุ่มนี้ควรจะมี animation วอ้ง ๆ แล้วมันจะเปลี่ยนเป็นสีเหลือง") ทั้งจอคอมและมือถือ
+   วงคลื่นเป็นของแยก (.fring ใน components/game/GameView.tsx ตั้ง key ใหม่ทุกครั้งที่ปัก) ไม่ดันอะไร นิ้วทะลุ · เครื่องที่ตั้งลดการเคลื่อนไหว ไม่มีวงคลื่น เหลือแค่สีเหลือง
+   🔴 คลื่นแผ่จากกลางปุ่มอยู่ในตัวปุ่มเอง (overflow hidden) · เดิมวงขยายออกนอกปุ่ม ปุ่มชิดขอบคอลัมน์ที่ตัดของล้น วงโดนตัด (พี่กันทัก "ไม่เห็นเหรอว่าแถบอนิเมชั่นมันโดนตัด") */
+.flagbtn { position: relative; overflow: hidden; isolation: isolate; }
+.flagbtn.flagged, .playpage .pg-ctrl .flagbtn.flagged { background: var(--flag-bg); border: 1px solid var(--flag-line); color: var(--flag-ink); }
+/* ชี้เมาส์ยังเปลี่ยนเหมือนปุ่มอื่น เหลืองเข้มขึ้น · ไอคอนธงเด้งตอนชี้แบบไอคอนของปุ่มอื่น (พี่กันทัก "เอาเมาส์ไปชี้แล้วมันไม่มีอนิเมชันเหมือนปุ่มอื่น" · "ทำไมชอบลบสิ่งที่เราทำอยู่แล้ว" เดิมแคลร์ตั้งสีตอนชี้ให้เท่าตอนไม่ชี้) */
+/* ปุ่มปักธงตอนยังไม่มีธง ชี้เมาส์แล้วเป็นเหลืองอ่อน ไม่ใช่ฟ้าแบบปุ่มอื่น (พี่กันสั่ง 22 ต.ค. 2569 "เอาสีเหลืองสิ") · มีธงแล้วเหลืองเต็ม ชี้แล้วเหลืองเข้ม */
+.flagbtn:not(.flagged):not(:disabled):hover, .playpage .pg-ctrl .flagbtn:not(.flagged):not(:disabled):hover { background: color-mix(in srgb, var(--flag-bg) 45%, var(--surface)); border: 1px solid var(--flag-line); color: var(--flag-ink); }
+.flagbtn.flagged:hover, .playpage .pg-ctrl .flagbtn.flagged:hover { background: color-mix(in srgb, var(--flag-bg) 72%, var(--flag-line)); border: 1px solid var(--flag-line); color: var(--flag-ink); }
+.fbtn:not(:disabled):hover .flagico { animation: icon-pop .45s ease forwards; }
+.flagbtn .fring { position: absolute; left: 50%; top: 50%; z-index: -1; width: 110%; aspect-ratio: 1; border-radius: 50%; background: var(--warm1); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: .45; animation: flag-ring .7s cubic-bezier(.2, .7, .3, 1) forwards; }
+@keyframes flag-ring { to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .flagbtn .fring { display: none; } .fbtn:not(:disabled):hover .flagico { animation: none; } }
+/* ปักธงแล้ว ธงบนปุ่มสีส้มแดงให้เด่นบนพื้นเหลือง (เดิมสามเหลี่ยมธงสีเหลืองเท่าพื้น กลืนหาย) ป้ายแป้น F พื้นขาว
+   (พี่กันสั่ง 22 ต.ค. 2569 "เอาสีธงให้เด่นสิ มันกลืนกันไปหมดเลย แล้วปุ่ม F ควรสีขาว") */
+.flagbtn.flagged .flagico::after { border-left-color: var(--warm1); }
+.flagbtn.flagged .kc { background: #FFFFFF; color: var(--flag-ink); border-color: var(--flag-line); opacity: 1; }
 
 /* ── แถบรอส่ง (สกิล save-status ข้อ 4) ── */
 .pendbar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 9px 14px; border-radius: 10px; font-size: 13px; }
@@ -613,6 +634,49 @@ table.games tbody tr:hover .go, table.games tbody tr:focus-visible .go { opacity
   .playpage #wincard-anchor .wincard { flex: 1; }
   .playpage #wincard-anchor .wstats { flex: 1 0 auto; grid-auto-rows: 1fr; }
   .playpage #wincard-anchor .wstats > div { display: flex; flex-direction: column; justify-content: center; }
+  /* การ์ดผลลดช่องว่าง ให้เห็นครบในหน้าเดียวตอนคะแนนเด้ง (พี่กันสั่ง 22 ต.ค. 2569 "ปรับเป็นวันเพจตอนคะแนนเด้ง" แล้ว "ลดช่องว่าง")
+     ช่องใต้แถวเวลา 8 เหลือ 4 · เลขคะแนนกับคำประเมินอยู่แถวเดียวกันเสมอ (เดิมคำประเมินยาวแล้วตกบรรทัด เหลือที่ว่างใต้เลข กินอีก 66) · ช่องไฟกับขอบในการ์ดแคบลง
+     กล่องเวลา ก้าวทั้งหมด ซ้ำกับแถวเวลาด้านบน เอาออก (พี่กันสั่ง "งั้นเอาออก มันซ้ำ แล้วจัดให้มันวันเพจ") จอ 577 การ์ดเหลือ 381 จากที่มี 411
+     🔴 ห้ามซ่อนกล่องอื่นในการ์ดเอง (ครั้งแรกแคลร์ซ่อนสองกล่องนี้โดยไม่บอก พี่กันทัก "การ์ดเราหายไปไหนสองอัน ไม่ได้บอกให้ลบด้วย" ต้องถามก่อนทุกครั้ง) */
+  .playpage.ended .play { row-gap: 4px; }
+  /* บรรทัดสถานะว่างใต้แถวเวลา ถือช่องไฟอีก 8 จุด ตอนเกมจบซ่อนไป ช่องที่ตาเห็นเหลือ 4 (เดิมแก้แค่ช่องของโครงหน้า ตาเห็นยัง 12 พี่กันทัก "ทำไมไม่ทำอันนี้") */
+  .playpage.ended .pg-hud > .status:empty { display: none; }
+  /* 🔴 จอคอมระหว่างเล่น ไม่มีบรรทัดข้อความใต้แถวเวลา ก้าว สถิติ (ปักธงแล้ว · กลับไปที่ธงแล้ว · ยังไม่ได้ปักธง · พักเกม · หยุดเวลา)
+     พี่กันสั่ง 22 ต.ค. 2569 "เอาออก ไม่ได้บอกให้เอามาใส่ตรงนี้" หลังลองมาสามแบบ
+     ① เดิมรุ่น 1.0.2 บรรทัดสูง 0 ตอนว่าง ข้อความขึ้นแล้วปุ่มเลื่อนลง ("เราบอกแล้วไงว่าห้ามไปขยับปุ่มกด")
+     ② ป้ายลอยทับแถวเวลาแบบมือถือ บังตัวเลขเวลา ("ขึ้นมาบังทำไม")
+     ③ จองบรรทัดไว้ตลอด ข้อความพักซ้ำกับแผ่นพักบนวงกต ("จะเขียนซ้ำซ้อนทำไม") แล้วสั่งเอาออก
+     ห้ามเอาข้อความระหว่างเล่นกลับมาไว้ตรงนี้ · ตอนยอมแพ้ (ended) คำอธิบายเฉลยยังขึ้นตามเดิม */
+  .playpage:not(.ended) .pg-hud > .status { display: none; }
+  .playpage #wincard-anchor .wstats > .wst-dup { display: none; }
+  /* บรรทัดก้าวเกินในคำอธิบายเอาออก ใช้กล่องก้าวเกินแทน (components/game/ResultCard.tsx · พี่กันสั่ง "เราบอกว่าเอาอันนี้ออกไง แล้วไปเพิ่มการ์ดอีกอันเรื่องจำนวนก้าวที่ผิด")
+     สามกล่องเรียงแถวเดียว ห้ามเพิ่มแถว (พี่กันสั่ง "ห้ามเพิ่มบรรทัด") · ทางแยก เลี้ยวผิด ก้าวเกิน */
+  .playpage #wincard-anchor .wstats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .playpage #wincard-anchor .wstats > .wst-waste { order: 1; }
+  /* ป้ายในกล่องห้ามตัดบรรทัด (พี่กันทัก "แหกตา" ป้าย "ทางแยกที่เลือก / ถูก" ตกบรรทัดในกล่องกว้าง 121) · ขอบในกล่องแคบลงให้ป้ายยาวสุดพอดี */
+  .playpage #wincard-anchor .wstats .k { white-space: nowrap; }
+  /* หน้านี้พอดีหน้าเดียว ห้ามเลื่อน (พี่กันสั่ง "หน้านั้นมันวันเพจห้ามเลื่อน") · ได้ป้ายสถิติใหม่สองป้าย หัวการ์ดสองแถว เดิมเกิน 6 จุด ช่องไฟในการ์ด 8 เหลือ 6
+     🔴 กฎของการ์ดในบล็อกนี้เขียนที่เดียวต่อหนึ่งตัว เคยเขียนช่องไฟซ้ำสองบรรทัด บรรทัดหลังทับบรรทัดแรก ค่าที่แก้ไม่ทำงาน */
+  .playpage #wincard-anchor .wincard { padding: 12px 14px; gap: 6px; }
+  .playpage #wincard-anchor .whead { row-gap: 4px; }
+  /* ป้ายสถิติใหม่ลงบรรทัดใต้หัวข้อเสมอ ป้ายบันทึกเล็กลอยมุมขวาของแถวหัวข้อ ไม่ทับป้ายสถิติอีก
+     (พี่กันสั่ง 22 ต.ค. 2569 "ไปแก้สิ" หลังเห็นป้ายบันทึกทับป้ายเวลาดีสุดใหม่) · ได้ป้ายเดียวก็ลงบรรทัดล่าง สูงเท่ากรณีสองป้ายที่วัดแล้วว่าพอดีหน้าเดียว
+     ป้ายบันทึกเลื่อนตามขอบในการ์ดที่แคบลง (12 14) ให้อยู่กลางแถวหัวข้อ */
+  .playpage #wincard-anchor .whead > .pills { flex-basis: 100%; }
+  .playpage #wincard-anchor .wsave { top: 17px; right: 14px; }
+  /* คำประเมินไม่ตัดบรรทัด (พี่กันสั่ง "ไม่ตัดบรรทัด" เดิม "แม่นยำ ไม่หลงแม้แต่ / ก้าวเดียว") · ข้างเลขคะแนนเหลือ 177 จุด คำประเมินยาวสุด 234
+     ป้าย "คะแนนความแม่นยำ" อยู่ข้างเลข คำประเมินลงบรรทัดใต้เลขเต็มบรรทัด */
+  .playpage #wincard-anchor .score { flex-wrap: wrap; column-gap: 12px; row-gap: 2px; align-items: flex-end; }
+  .playpage #wincard-anchor .snum { flex-shrink: 0; }
+  .playpage #wincard-anchor .sgrade { display: contents; }
+  .playpage #wincard-anchor .sgrade .k { padding-bottom: 6px; }
+  .playpage #wincard-anchor .sgrade b { flex-basis: 100%; white-space: nowrap; }
+  /* กล่องตัวเลขไม่ยืดจนโล่ง (พี่กันสั่ง "เอาที่ว่างออก มันโล่งไป") ที่เหลือในคอลัมน์แบ่งเป็นช่องไฟระหว่างแถวเท่า ๆ กันแทน */
+  .playpage #wincard-anchor .wincard { justify-content: space-between; }
+  .playpage #wincard-anchor .wstats { flex: 0 0 auto; }
+  .playpage #wincard-anchor .wstats > div { padding: 6px 8px; }
+  .playpage #wincard-anchor .wnote { line-height: 1.5; }
+  .playpage #wincard-anchor .savestate { padding-block: 6px; }
 }
 
 /* ── ใบงาน A4 (สกิล making-documents) ──
@@ -936,3 +1000,49 @@ button.bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
    กันสคริปต์ไม่ทำงาน หน้าโผล่เองหลัง 1.2 วินาที · โหมดไทยไม่โดน */
 html[data-lang="en"]:not(.mz-tr) body { visibility: hidden; animation: mz-reveal 0s 1.2s forwards; }
 @keyframes mz-reveal { to { visibility: visible; } }
+
+/* ป้ายบันทึกเล็กข้างหัวข้อการ์ดชนะ แบบป้ายมุมบนขวาของเว็บ warfarin ทั้งมือถือและจอคอม (พี่กันสั่ง 22 ต.ค. 2569 "ให้เป็นเหมือนในเว็บ warfarin ที่มันจะขึ้นเล็กๆ
+   เอาขึ้นข้างๆออกจากเขาวงกต" แล้ว "ไปปรับในเดสท็อปด้วย") · กำลังบันทึก วงหมุน · เข้าระบบแล้ว วงถูกเด้ง ค้าง 3 วินาทีแล้วหาย (GameView savedPill)
+   ลอยทับมุมขวาของแถวหัวข้อ ไม่กินที่ ไม่ดันอะไร · การ์ดแคบกว่า 390 เหลือแค่วงกลม ไม่ทับหัวข้อ ชี้เมาส์แล้วบอกสถานะ · คำว่าบันทึกเกมเข้าระบบแล้วยังอยู่ท้ายการ์ดตลอด */
+.playpage .wincard { position: relative; container-type: inline-size; }
+.playpage .wsave { display: inline-flex; position: absolute; top: 21px; right: 16px; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 6px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; box-sizing: border-box; cursor: default; }
+.playpage .wsave.done { background: var(--done-bg); color: var(--done-ink); border: 1px solid color-mix(in srgb, var(--done-ink) 40%, transparent); }
+.playpage .wsave.wait { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.playpage .wsave .wtick { width: 18px; height: 18px; border-radius: 50%; position: relative; flex: none; background: var(--done-ink); animation: wsave-pop .28s cubic-bezier(.34, 1.56, .64, 1); }
+.playpage .wsave .wtick::after { content: ""; position: absolute; left: 50%; top: 50%; width: 5px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: translate(-60%, -65%) rotate(45deg); }
+.playpage .wsave .wspin { width: 16px; height: 16px; border-radius: 50%; flex: none; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: currentColor; animation: wsave-spin .7s linear infinite; }
+@keyframes wsave-pop { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes wsave-spin { to { transform: rotate(360deg); } }
+@container (max-width: 389px) { .playpage .wsave { padding: 0 4px; width: 28px; justify-content: center; } .playpage .wsave .wsavet { display: none; } }
+@media (prefers-reduced-motion: reduce) { .playpage .wsave .wtick { animation: none; } .playpage .wsave .wspin { animation-duration: 1.6s; } }
+
+/* ปุ่มเริ่มเกมทับกลางวงกต วงกตเบลอจนกว่าจะกดเริ่ม ทั้งมือถือและจอคอม (มือถือพี่กันสั่ง 21 ต.ค. 2569 "ปุ่มเริ่มเกม ให้มันบังกลางงั้นเลย และเบลอวงกตด้วย"
+   จอคอมเพิ่ม 22 ต.ค. 2569 "เพิ่มปุ่มเริ่มที่เดสท็อปด้วย") · จอคอมกดลูกศรบนคีย์บอร์ดหรือปุ่มลูกศรบนจอแล้วเริ่มเกมพร้อมเดินเลย Enter หรือ Space ก็เริ่มได้ (GameView armRef) */
+.startcover { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: color-mix(in srgb, var(--surface) 42%, transparent); }
+.startcover .btn { flex: none; width: auto; min-height: 58px; padding-inline: 36px; border-radius: 16px; font-size: 19px; gap: 10px; box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent); }
+.playpage.locked .pg-board canvas.board { filter: blur(10px); } /* จอคอม เบลอ 10 (พี่กันสั่ง 22 ต.ค. 2569 "เบลอกว่านี้" เดิม 5) · มือถือยังเป็น 5 ตามกฎใน app/mobile.css */
+
+/* ปุ่มวิธีเล่นใต้ปุ่มเดินของจอคอม กดแล้วขึ้นหน้าต่างเด้ง (พี่กันสั่ง 22 ต.ค. 2569 "ไปย่อให้มันเป็นเปิดปิดได้" แล้วเปลี่ยนเป็น "เปลี่ยน เป็นกดแล้วเป็น popup แสดง") */
+.helpbtn { flex: none; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 2px; border: 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: color-mix(in srgb, var(--accent) 72%, var(--ink)); cursor: pointer; transition: color .15s ease; }
+.helpbtn:hover { color: var(--accent); }
+.helpbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.helprow { flex: none; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.helprow .helpbtn { align-self: auto; }
+/* วิธีเดินสั้น ๆ บรรทัดเดียว คอลัมน์แคบตัดท้ายด้วยจุดไข่ปลา เว้นบนล่างให้วรรณยุกต์ไม่โดนตัด */
+.helphint { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: 3px; font-size: 12px; color: var(--muted); }
+.helppop { max-width: 540px; }
+.helppop .hptop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.helppop .keyhelp { font-size: 13.5px; gap: 8px 14px; }
+
+/* แผงตั้งค่าด่านจอคอมเห็นครบในหน้าเดียว ไม่ต้องเลื่อน (พี่กันสั่ง 22 ต.ค. 2569 "ส่วนนี้มันต้องวันเพจนี่นา" แล้ว "ทำให้เหลือ 1 บรรทัด เเละส่วนอื่นๆก็บีบบรรทัดได้")
+   วัดในโครม 1366 x 577 เดิมเกิน 122 จุด · คำอธิบายตัว 12 คำอธิบายวิธีสร้างบรรทัดเดียว (Wilson ยาวสุด 375 จาก 379) · ช่องไฟหัวข้อ 4 · ปุ่มเตี้ยลง */
+@media (min-width: 1000px) and (min-height: 560px) {
+  .pg-set { gap: 4px; padding: 10px 14px; }
+  .pg-set .psech { font-size: 15px; }
+  .pg-set .foot { font-size: 12px; line-height: 1.4; }
+  .pg-set .seg button { min-height: 34px; padding-block: 4px; }
+  .pg-set select { min-height: 34px; padding-block: 4px; }
+  .pg-set .togrow .btn { min-height: 40px; padding-block: 3px; }
+  .pg-set .row .btn { min-height: 38px; padding-block: 6px; }
+  .pg-set .about summary { padding: 4px 0; }
+}

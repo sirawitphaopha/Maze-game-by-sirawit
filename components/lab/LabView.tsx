@@ -12,6 +12,7 @@ import { drawLab, labFinish, labStep, type LabState } from "@/lib/draw/labDraw";
 import { fitCanvas, reducedMotion, solFinished } from "@/lib/draw/paint";
 import { th } from "@/lib/local";
 import { labMem, type LabPrefs } from "@/lib/session";
+import { glideIntoView } from "@/lib/glide";
 
 /* ════════════════════════════════════════════════════════════════════
    แท็บห้องทดลอง 2D เหมือนเดิม (ยกจากไฟล์เดิม ก้อนที่ 1 · เอกสารหัวข้อ 7) พี่กันเคาะ "คงเป็น 2D เหมือนเดิม"
@@ -236,7 +237,8 @@ export default function LabView() {
   };
   const regen = () => newMaze(pref.current.animate);
 
-  const selectAlgo = (a: AlgoId) => { update({ algo: a }); regen(); };
+  // มือถือ แผงอยู่ใต้กระดาน เลือกวิธีหรือแตะแท่งกราฟแล้วพากลับขึ้นไปดูวงกตก่อตัว (รายงานมือถือข้อ 5)
+  const selectAlgo = (a: AlgoId) => { update({ algo: a }); regen(); if (document.documentElement.classList.contains("mz-mobile")) glideIntoView(document.querySelector(".lstage .boardbox")); };
   const setParam = (k: string, v: number | string) => update({ PV: { ...pref.current.PV, [prefs.algo]: { ...pref.current.PV[prefs.algo], [k]: v } } });
 
   const toggleSol = () => {
@@ -347,7 +349,7 @@ export default function LabView() {
               <div className="ends"><span>ทางถูกทางเดียว</span><span>ทางวนเต็มกระดาน</span></div>
             </div>
             <div>
-              <label className="lbl" htmlFor="tries">สุ่มหลายรอบแล้วเก็บอันที่ทางยาวสุด <b>{prefs.tries} รอบ</b></label>
+              <label className="lbl" htmlFor="tries">สุ่มหลายรอบแล้วเก็บอันที่ทางยาวสุด <b>{`${prefs.tries} รอบ`}</b></label>
               <CommitRange id="tries" min={1} max={200} step={1} value={prefs.tries} onInput={(v) => update({ tries: v })} onCommit={() => regen()} />
             </div>
             <label className="chk"><input type="checkbox" checked={prefs.farExit} onChange={(e) => { update({ farExit: e.target.checked }); regen(); }} /> ย้ายทางออกไปจุดที่ไกลสุดบนขอบล่าง</label>

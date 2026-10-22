@@ -37,10 +37,12 @@ export function drawGame(ctx: CanvasRenderingContext2D, W: number, v: BoardView)
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, W);
   const over = G.status === "won" || G.status === "gaveup", wrongC = tok("--wrong");
-  // ช่องที่เดินผ่าน · จบเกมแล้วช่องนอกทางถูก (ทางสั้นสุดเส้นไหนก็ได้) เป็นสีแดงอ่อน
+  // ช่องที่เดินผ่าน · จบเกมแล้วช่องนอกทางถูกเป็นสีแดงอ่อน
+  // ชนะ = นอกเส้นทางสุดท้ายของผู้เล่น (ทางที่ต้องย้อนหรือวนกลับ) · ยอมแพ้ = นอกทางสั้นสุดทุกเส้น (ยังไม่มีเส้นของผู้เล่นถึงทางออก)
+  const right = G.onRoute ?? G.onBest;
   for (let c = 0; c < n * n; c++)
     if (G.seen[c]) {
-      ctx.fillStyle = over && !G.onBest[c] ? wrongC : C.visit;
+      ctx.fillStyle = over && !right[c] ? wrongC : C.visit;
       ctx.fillRect(pad + (c % n) * cs, pad + ((c / n) | 0) * cs, cs + 0.5, cs + 0.5);
     }
   // เส้นที่ลากตามตัว เดินถอยแล้วหดตาม

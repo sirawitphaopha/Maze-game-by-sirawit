@@ -66,8 +66,8 @@ export function unpackWalls(n: number, ex: number, s: string): MazeData | null {
 
 /* 🔴 ชนิดเหตุการณ์ต้องเป็นตัวพิมพ์ใหญ่ เพราะเลขฐาน 36 ใช้ตัวพิมพ์เล็ก a ถึง z
    เดิมใช้ u d l r ตัวพิมพ์เล็ก ไปซ้ำกับเลขเวลา (เช่น r1l) แกะกลับแล้วเพี้ยน ชุดทดสอบจับได้ 21 ต.ค. 2569 */
-const KIND_CHAR: Record<EventKind, string> = { u: "U", d: "D", l: "L", r: "R", F: "F", W: "W" };
-const CHAR_KIND: Record<string, EventKind> = { U: "u", D: "d", L: "l", R: "r", F: "F", W: "W" };
+const KIND_CHAR: Record<EventKind, string> = { u: "U", d: "D", l: "L", r: "R", F: "F", X: "X", W: "W" };
+const CHAR_KIND: Record<string, EventKind> = { U: "u", D: "d", L: "l", R: "r", F: "F", X: "X", W: "W" };
 
 export function packMoves(events: GameEvent[]): string {
   let out = "", prev = 0;
@@ -81,10 +81,10 @@ export function packMoves(events: GameEvent[]): string {
 
 /** แกะบันทึกการเดิน · ข้อมูลเสีย = null */
 export function unpackMoves(s: string): GameEvent[] | null {
-  if (!/^(?:[UDLRFW][0-9a-z]+)*$/.test(s)) return null;
+  if (!/^(?:[UDLRFXW][0-9a-z]+)*$/.test(s)) return null;
   const out: GameEvent[] = [];
   let t = 0;
-  for (const m of s.matchAll(/([UDLRFW])([0-9a-z]+)/g)) {
+  for (const m of s.matchAll(/([UDLRFXW])([0-9a-z]+)/g)) {
     t += parseInt(m[2], 36);
     out.push({ t, k: CHAR_KIND[m[1]] });
   }

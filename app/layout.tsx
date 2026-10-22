@@ -19,10 +19,11 @@ export const metadata: Metadata = {
   description: "ดู 11 วิธีสร้างเขาวงกต แล้วลองเดินเอง บันทึกเกมที่เล่นจบ เปิดดูย้อนได้",
   robots: { index: false, follow: false },
   // เปิดจากไอคอนบนหน้าจอโฮมแบบแอป (ไฟล์ประกาศตัวตน app/manifest.ts) · iPhone ไม่อ่านไฟล์นั้นครบ ต้องบอกซ้ำตรงนี้
-  // statusBarStyle ใช้ default แบบปลอดภัย เป็นเรื่องหน้าตาที่ต้องให้พี่กันเลือก (สกิล mobile-web-app) ยังไม่ได้ถาม
-  // แถบสถานะของ iPhone โปร่งใส สีแถบบนของเว็บลากขึ้นไปเต็มถึงขอบบน (พี่กันสั่ง 21 ต.ค. 2569 "ส่วนหัวที่มันดำ ๆ ให้มันขยายสีขึ้นไปด้วย")
-  // ต้องคู่กับ viewportFit cover (มีแล้ว) และขอบบนของแถบบนกันที่ให้เวลากับแบต (app/mobile.css) · มีผลเฉพาะเปิดจากไอคอนบนหน้าจอโฮม
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "เขาวงกต" },
+  // สีแถบสถานะของ iPhone ตามสีแถบบนของเว็บ (พี่กันสั่ง 21 ต.ค. 2569 "ส่วนหัวที่มันดำ ๆ ให้มันขยายสีขึ้นไปด้วย เหมือนเว็บยาคืน"
+  // แล้วทัก 22 ต.ค. 2569 "ยังไม่แก้ส่วนหัวเราเลย" พร้อมภาพโหมดมืดที่ด้านบนสุดยังสีอ่อน)
+  // 🔴 เดิมใช้ black-translucent แถบสถานะโปร่งใสตัวหนังสือขาวเสมอ ใช้ได้แค่เปิดจากไอคอนที่เพิ่มหลังเปลี่ยนค่า และโหมดสว่างตัวขาวบนพื้นขาวมองไม่เห็น
+  //    เปลี่ยนเป็น default แบบเว็บยาคืน แล้วบอกสีด้วย theme-color ตามโหมดสว่างมืด (THEME_BOOT ข้างล่าง) iPhone ทาสีนั้นด้านบนสุดเอง ตัวหนังสือดำหรือขาวตามพื้นเอง
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "เขาวงกต" },
 };
 
 // ห้ามซูมทุกเว็บ ชั้นที่ 1 (สกิล mobile-web-app) · ชั้นอื่นอยู่ใน MOBILE_BOOT กับท้าย app/mobile.css
@@ -30,7 +31,11 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, maxi
 
 /* ตั้งโหมดมืดหรือสว่างที่เคยเลือกไว้ ก่อนจอวาดเฟรมแรก จอจะได้ไม่กะพริบสว่างแล้วค่อยมืด
    ค่ามาจากปุ่มบนแถบบน (components/ui/ThemeToggle.tsx คีย์ maze-theme) · ไม่เคยเลือก = ตามเครื่อง */
-const THEME_BOOT = `try{var t=localStorage.getItem("maze-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}`;
+/* พร้อมบอกสีด้านบนสุดของจอให้เบราว์เซอร์มือถือ (theme-color) เท่าสีแถบบน เปลี่ยนตามทุกครั้งที่สลับโหมดหรือเครื่องเปลี่ยนโหมด
+   🔴 สองค่านี้คือสีที่ตาเห็นของแถบบน (.appbar ใน app/globals.css พื้น --surface 86% ทับ --paper) โหมดสว่าง #FDFEFE โหมดมืด #101E26 · เปลี่ยนสีพื้นแถบบนต้องคิดสองค่านี้ใหม่
+   แถบบนยังโปร่งแสงเบลอของที่เลื่อนผ่านตามที่พี่กันสั่งไว้ ไม่ได้ทำให้ทึบ */
+const THEME_BOOT = `try{var t=localStorage.getItem("maze-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}
+try{var d=document.documentElement,m=document.createElement("meta"),dq=matchMedia("(prefers-color-scheme: dark)");m.name="theme-color";document.head.appendChild(m);var u=function(){var v=d.dataset.theme,k=v==="dark"||(v!=="light"&&dq.matches);m.content=k?"#101E26":"#FDFEFE"};u();dq.addEventListener("change",u);new MutationObserver(u).observe(d,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}`;
 
 /* ภาษาที่เคยเลือกไว้ ตั้งก่อนจอวาดเฟรมแรกเหมือนโหมดมืด (lib/lang.ts คีย์ maze-lang) · ไม่เคยเลือก = ไทย */
 const LANG_BOOT = `try{if(localStorage.getItem("maze-lang")==="en"){document.documentElement.dataset.lang="en";document.documentElement.lang="en"}}catch(e){}`;
@@ -42,9 +47,10 @@ const LANG_BOOT = `try{if(localStorage.getItem("maze-lang")==="en"){document.doc
    · หน้าไถลซ้ายขวา ดีดตำแหน่งเลื่อนแนวนอนของทั้งหน้ากลับเป็น 0 ทุกครั้ง เฉพาะตอนเป็นมือถือ (ตารางเลื่อนข้างของตัวเองได้ตามปกติ) */
 const MOBILE_Q = "(max-width: 759px)";
 /* มือถือ เปิดเว็บครั้งแรกของรอบ (แท็บนี้) ที่หน้าแรก พาไปหน้าเล่นเกมทันทีก่อนจอวาด (พี่กันสั่ง 21 ต.ค. 2569 "หน้าจอหลักคือวงกต และปุ่มเล่นเกมจะแสดงอย่างแรก")
-   จำไว้ใน sessionStorage ครั้งต่อไปเลือกห้องทดลองจากเมนูได้ตามปกติ · จอคอมไม่โดน */
+   จำไว้ใน sessionStorage ครั้งต่อไปเลือกห้องทดลองจากเมนูได้ตามปกติ · จอคอมไม่โดน
+   ซ่อนหน้าไว้ระหว่างพาไป ไม่ให้เห็นหน้าห้องทดลองแวบก่อน (พี่กันสั่ง 22 ต.ค. 2569 "สำหรับโมบาย ตอนเปิดเข้าเว็บ มันจะเด้งหน้าเล่นเกมเลย ไม่ไปหน้าทดลองก่อน") */
 const MOBILE_BOOT = `try{var d=document.documentElement,q=matchMedia("${MOBILE_Q}"),s=function(){d.classList.toggle("mz-mobile",q.matches)};s();q.addEventListener("change",s);
-try{if(q.matches&&!sessionStorage.getItem("mz-landed")){sessionStorage.setItem("mz-landed","1");if(location.pathname==="/")location.replace("/play")}}catch(e){}
+try{if(q.matches&&!sessionStorage.getItem("mz-landed")){sessionStorage.setItem("mz-landed","1");if(location.pathname==="/"){d.style.visibility="hidden";location.replace("/play")}}}catch(e){}
 ["gesturestart","gesturechange","gestureend"].forEach(function(e){document.addEventListener(e,function(v){v.preventDefault()},{passive:false})});
 var p=function(){if(!d.classList.contains("mz-mobile"))return;if(d.scrollLeft)d.scrollLeft=0;if(document.body&&document.body.scrollLeft)document.body.scrollLeft=0;if(window.scrollX)window.scrollTo(0,window.scrollY)};
 window.addEventListener("scroll",p,{passive:true});window.addEventListener("touchmove",p,{passive:true});window.addEventListener("touchend",p,{passive:true})}catch(e){}`;

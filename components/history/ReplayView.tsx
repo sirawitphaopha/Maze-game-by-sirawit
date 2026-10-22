@@ -14,6 +14,7 @@ import { playMem } from "@/lib/session";
 import { solRun, type SolRun } from "@/lib/game/solAnim";
 import { unpackMoves, unpackWalls } from "@/lib/game/encode";
 import { reducedMotion, solFinished } from "@/lib/draw/paint";
+import { glideIntoView } from "@/lib/glide";
 import { cachedGame, getGame, type GameFull } from "@/lib/games";
 import { failText } from "@/lib/net";
 import { fmt, th } from "@/lib/local";
@@ -134,7 +135,10 @@ function Player({ d }: { d: Ready }) {
 
   // ช่องที่ปักธงแต่ละครั้ง แสดงเฉพาะที่ปักไปแล้วถึงเหตุการณ์ที่ดูอยู่
   const spots = useMemo(() => flagSpots(settings, maze, events), [settings, maze, events]);
-  const getView = useCallback(() => ({ G, sol: sol.current, fog: false, markers: G.wrongAt, now: performance.now(), pulse: !reducedMotion(), flagSpots: spots.filter((s) => s.i < k).map((s) => s.pos) }), [G, spots, k]);
+  // เลี้ยวผิดถึงตอนนี้ · ทางไหนต้องย้อนหรือวนกลับรู้ได้ตอนจบเกม (lib/game/state.ts settle) จึงเอาจากผลจบ เฉพาะที่เกิดแล้วถึงก้าวที่ดูอยู่
+  const stepsNow = G.steps;
+  const wrongNow = useMemo(() => finalG.wrongAt.filter((_, i) => finalG.wrongStep[i] <= stepsNow), [finalG, stepsNow]);
+  const getView = useCallback(() => ({ G, sol: sol.current, fog: false, markers: wrongNow, now: performance.now(), pulse: !reducedMotion(), flagSpots: spots.filter((s) => s.i < k).map((s) => s.pos) }), [G, spots, k, wrongNow]);
   useEffect(() => { board.current?.draw(); }, [G, k]);
 
   // ลูกศรทางเข้าออกกะพริบขึ้นลงเหมือนหน้าเล่นเกมกับห้องทดลอง (พี่กันสั่ง 21 ต.ค. 2569 "ต้องทุกหน้า")
@@ -179,6 +183,8 @@ function Player({ d }: { d: Ready }) {
   const toggleSol = () => {
     if (solOn) { stopSol(); setSolOn(false); board.current?.draw(); return; }
     setSolOn(true);
+    // มือถือ ปุ่มอยู่ในการ์ดผลใต้กระดาน กดแล้วพากลับขึ้นไปให้เห็นเส้นเฉลย (รายงานมือถือข้อ 8)
+    if (document.documentElement.classList.contains("mz-mobile")) glideIntoView(document.querySelector(".pg-board .stage"));
     sol.current = solRun(G.n, G.R, G.B, G.s, G.e, G.onPath, performance.now());
     if (reducedMotion()) { sol.current.done = true; board.current?.draw(); return; }
     const tick = () => {
@@ -207,7 +213,7 @@ function Player({ d }: { d: Ready }) {
           <div className="hud">
             <div><span className="k">เวลา</span><b>{fmt(tNow)}</b></div>
             <div><span className="k">ก้าว</span><b>{th(G.steps)}</b></div>
-            <div className="tone-wrong"><span className="k">เลี้ยวผิด</span><b>{th(G.wrong)}</b></div>
+            <div className="tone-wrong"><span className="k">เลี้ยวผิด</span><b>{th(wrongNow.length)}</b></div>
           </div>
           {/* ปุ่มแถวหนึ่ง แถบเลื่อนกับเวลาอีกแถวเสมอ ปุ่มเล่นกว้างคงที่ ความสูงจึงเท่ากันทั้งตอนเล่นและตอนจบ
               (พี่กันทัก "ทำไมมันไม่เหมือนกัน" เดิมคำบนปุ่มยาวไม่เท่ากัน แถบเลื่อนตกบรรทัดตอนจบ) */}
@@ -227,7 +233,7 @@ function Player({ d }: { d: Ready }) {
             </div>
           </div>
           {/* ขึ้นตลอด ยังไม่เลี้ยวผิดก็บอก (พี่กันสั่ง "ให้มันขึ้นตลอดได้ไหม") */}
-          <p className="status" style={{ textAlign: "left" }}>{G.wrong > 0 ? `จุดแดงคือช่องที่เลี้ยวออกจากทางถูก ${th(G.wrong)} ครั้งถึงตอนนี้` : "ยังไม่เลี้ยวออกจากทางถูกถึงตอนนี้"}</p>
+          <p className="status" style={{ textAlign: "left" }}>{wrongNow.length > 0 ? `จุดแดงคือช่องที่เลี้ยวออกจากทางถูก ${th(wrongNow.length)} ครั้งถึงตอนนี้` : "ยังไม่เลี้ยวออกจากทางถูกถึงตอนนี้"}</p>
         </div>
         <section className="panel rinfo" aria-label="ข้อมูลเกม">
           <h3 className="psech">ข้อมูลเกม</h3>

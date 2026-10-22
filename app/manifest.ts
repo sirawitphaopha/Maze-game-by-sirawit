@@ -10,7 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ห้องทดลองเขาวงกต",
     short_name: "เขาวงกต",
     description: "ดู 11 วิธีสร้างเขาวงกต แล้วลองเดินเอง บันทึกเกมที่เล่นจบ เปิดดูย้อนได้",
-    start_url: "/",
+    // เปิดจากไอคอนบนหน้าจอโฮม เข้าหน้าเล่นเกมเลย (พี่กันสั่ง 22 ต.ค. 2569 มือถือเปิดเว็บแล้วไม่ไปหน้าห้องทดลองก่อน)
+    start_url: "/play",
     display: "standalone",
     background_color: "#ECF4F6",
     theme_color: "#0A7EA4",

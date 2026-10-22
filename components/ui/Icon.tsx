@@ -1,7 +1,7 @@
 /* ไอคอนวาดเอง ไม่ใช้ตัวอักษรพิเศษ บางเครื่องวาดเป็นกล่องเปล่าหรืออีโมจิ (สกิลกลางข้อ 2 · new-web-checklist)
    ปุ่มลูกศรเดิมใช้ ◀ ▶ ▲ ▼ ซึ่งไอโฟนบางรุ่นวาด ◀ ▶ เป็นอีโมจิกรอบสีฟ้า (บั๊กข้อ 7) */
 
-export type IconName = "up" | "down" | "left" | "right" | "x" | "check" | "alert" | "cloud" | "cloudoff" | "play" | "pause" | "restart" | "print" | "sun" | "moon" | "eye" | "undo" | "backspace" | "giveup" | "torch" | "sound" | "mute" | "list" | "grid" | "trash" | "lv1" | "lv2" | "lv3" | "lv4" | "trophy" | "sliders" | "tostart" | "menu";
+export type IconName = "up" | "down" | "left" | "right" | "x" | "check" | "alert" | "cloud" | "cloudoff" | "play" | "pause" | "restart" | "print" | "sun" | "moon" | "eye" | "undo" | "giveup" | "torch" | "sound" | "mute" | "list" | "grid" | "trash" | "lv1" | "lv2" | "lv3" | "lv4" | "trophy" | "sliders" | "tostart" | "menu";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   up: <path d="M12 5 4.5 15.5h15Z" fill="currentColor" stroke="none" />,
@@ -20,7 +20,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
   // ปุ่มสลับโหมดมืด (components/ui/ThemeToggle.tsx)
   sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></>,
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />,
-  // ดูเฉลย · กลับไปที่ธง · ปุ่ม Backspace บนป้ายปุ่มลัด (พี่กันสั่ง "ใส่ไอคอนให้ครบ")
+  // ดูเฉลย · กลับไปที่ธง (ไอคอน Backspace เอาออก 22 ต.ค. 2569 ปุ่มลัดพักเกมเปลี่ยนเป็นสเปซบาร์) (พี่กันสั่ง "ใส่ไอคอนให้ครบ")
   eye: <><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="3" /></>,
   undo: <><path d="M9 14 4.5 9.5 9 5" /><path d="M4.5 9.5H15a5 5 0 0 1 0 10h-3" /></>,
   // ธงขาว ปุ่มยอมแพ้ (พี่กันสั่ง "ยอมแพ้ ดูเฉลย ไปปรับคำ มันไม่อยู่ในกรอบ")
@@ -47,7 +47,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
   tostart: <><path d="M6.5 5.5v13" /><path d="M18.5 5.5v13L8.5 12Z" fill="currentColor" stroke="none" /></>,
   // ปุ่มลบเกมในหน้าประวัติ
   trash: <><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M6.5 7l1 13h9l1-13" /><path d="M10 11v5.5M14 11v5.5" /></>,
-  backspace: <><path d="M21 5.5H8.5L3 12l5.5 6.5H21Z" /><path d="m11.5 9.5 5 5M16.5 9.5l-5 5" /></>,
 };
 
 export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

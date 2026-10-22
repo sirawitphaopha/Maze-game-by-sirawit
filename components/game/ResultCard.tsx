@@ -20,10 +20,12 @@ type Props = {
   markersNote?: boolean;
   /** การ์ดตอนชนะในหน้าเล่นเกม ใส่ถ้วยรางวัลกับหัวข้อสีโทนอุ่น */
   celebrate?: boolean;
+  /** ป้ายเล็กข้างหัวข้อ (ป้ายบันทึกของหน้าเล่นเกมบนมือถือ) */
+  badge?: React.ReactNode;
   children?: React.ReactNode;
 };
 
-export default function ResultCard({ G, r, title, pills, markersNote, celebrate, children }: Props) {
+export default function ResultCard({ G, r, title, pills, markersNote, celebrate, badge, children }: Props) {
   const [meter, setMeter] = useState(0);
   useEffect(() => {
     let a = 0, b = 0;
@@ -61,6 +63,7 @@ export default function ResultCard({ G, r, title, pills, markersNote, celebrate,
           {/* ชนะแล้ว ถ้วยรางวัลสีทองเด้งเข้ามา หัวข้อสีโทนอุ่นไล่เฉด (พี่กันสั่ง 21 ต.ค. 2569 "ใส่ไอคอนที่บ่งบอกของรางวัลและความยินดี และเปลี่ยนสีให้เด่น") */}
           {celebrate ? <h2 className="wtitle"><span className="trophy" aria-hidden="true"><Icon name="trophy" size={22} /></span><span className="wtxt">{title}</span></h2> : <h2>{title}</h2>}
           {pills && pills.length > 0 && <div className="pills">{pills.map((p) => <span key={p} className="pill">{p}</span>)}</div>}
+          {badge}
         </div>
         {/* เลขคะแนนกับแถบวัดสีตามระดับเดียวกับแถบคะแนนในหน้าประวัติ (พี่กันสั่ง 21 ต.ค. 2569 "ใส่สีคะแนนตามเส้นด้วย" "สีตามเส้นนี้") */}
         <div className={`score sc-${scoreTone(r.score)}`}>
@@ -70,16 +73,25 @@ export default function ResultCard({ G, r, title, pills, markersNote, celebrate,
         </div>
         <div className={`meter sc-${scoreTone(r.score)}`} aria-hidden="true"><div className="mfill" style={{ width: `${meter}%` }} /></div>
         <div className="wstats">
-          <div><span className="k">เวลา</span><b>{fmt(G.el)}</b></div>
-          <div><span className="k">ก้าวทั้งหมด</span><b>{th(G.steps)}</b></div>
+          {/* wst-dup = ตัวเลขซ้ำกับแถวเวลา ก้าว ด้านบนของหน้าเล่นเกมจอคอม ซ่อนที่นั่น (app/globals.css) · หน้าดูย้อนกับมือถือยังขึ้น
+              (พี่กันสั่ง 22 ต.ค. 2569 "งั้นเอาออก มันซ้ำ แล้วจัดให้มันวันเพจ") */}
+          <div className="wst-dup"><span className="k">เวลา</span><b>{fmt(G.el)}</b></div>
+          <div className="wst-dup"><span className="k">ก้าวทั้งหมด</span><b>{th(G.steps)}</b></div>
+          {/* หน้าเล่นเกม (celebrate) กล่องก้าวเกินแทนบรรทัดก้าวเกินในคำอธิบาย (พี่กันสั่ง 22 ต.ค. 2569 "เราบอกว่าเอาอันนี้ออกไง แล้วไปเพิ่มการ์ดอีกอันเรื่องจำนวนก้าวที่ผิด")
+              ตัวดูย้อนยังเป็นบรรทัดเดิมที่แยกที่มาของก้าวเกิน */}
+          {celebrate && <div className="tone-wrong wst-waste"><span className="k">ก้าวเกิน</span><b>{`${th(r.waste)} ก้าว`}</b></div>}
           <div><span className="k">ทางแยกที่เลือกถูก</span><b>{`${th(r.D - r.W)} / ${th(r.D)}`}</b></div>
           <div className="tone-wrong"><span className="k">เลี้ยวผิด</span><b>{th(G.wrong)} ครั้ง</b></div>
         </div>
         {/* แต่ละวลีไม่ถูกหั่นกลาง ตัวเลขอยู่กับคำว่าก้าวเสมอ ตัดบรรทัดได้เฉพาะระหว่างวลี (พี่กันสั่ง "ปรับบรรทัดดี ๆ") */}
         <p className="wnote">
-          {ph("คะแนน = 80% จากทางแยกที่เลือกถูก")} {ph("+ 20% จากระยะทาง")} {ph(`(ทางสั้นสุด ${th(r.shortest)} ก้าว เดินจริง ${th(G.steps)} ก้าว)`)}
+          {/* คะแนน = เส้นทางสุดท้ายของผู้เล่น ÷ ก้าวที่เดินจริง (lib/game/state.ts result · พี่กันเคาะ 22 ต.ค. 2569 "เอาตามเรา" ให้นับแค่ก้าว)
+              ด่านทางวนเลือกเส้นที่อ้อมกว่าได้ไม่หักคะแนน (พี่กันเคาะ "ยังไงเราต้องได้เต็ม 100") บอกทางสั้นสุดไว้ให้เทียบ */}
+          {ph("คะแนน = เส้นทางที่เลือก ÷ ก้าวที่เดินจริง")} {ph(`(${th(r.route)} ÷ ${th(G.steps)} ก้าว)`)}
+          {r.route > r.shortest && <><br />{ph(`ทางสั้นสุด ${th(r.shortest)} ก้าว`)} {ph("เส้นที่อ้อมกว่าทางสั้นสุดไม่หักคะแนน")} {ph("หักเฉพาะก้าวที่เดินย้อนหรือวนกลับที่เดิม")}</>}
           {/* บรรทัดก้าวเกินกับคำอธิบายสีขึ้นทุกเกม เกมที่ไม่มีก้าวเกินก็ขึ้น (พี่กันสั่ง 21 ต.ค. 2569 "ให้มันขึ้นตลอดได้ไหม" ไฟล์เดิมขึ้นเฉพาะเกมที่มีก้าวเกินหรือเลี้ยวผิด) */}
-          <br />{r.waste > 0 ? <>{ph(`ก้าวเกิน ${th(r.waste)} ก้าว มาจาก`)} {parts.map((p, i) => <Fragment key={i}>{ph(p)} </Fragment>)}</> : <>{ph("ไม่มีก้าวเกิน")} {ph("เดินตามทางสั้นสุดพอดี")}</>}
+          {/* หน้าเล่นเกมไม่มีบรรทัดนี้ ทั้งตอนมีและไม่มีก้าวเกิน (พี่กันสั่ง 22 ต.ค. 2569 "เอาบรรทัดนี้ออก" แล้ว "เราบอกว่าเอาอันนี้ออกไง") ใช้กล่องก้าวเกินข้างบนแทน */}
+          {!celebrate && (r.waste > 0 ? <><br />{ph(`ก้าวเกิน ${th(r.waste)} ก้าว มาจาก`)} {parts.map((p, i) => <Fragment key={i}>{ph(p)} </Fragment>)}</> : <><br />{ph("ไม่มีก้าวเกิน")} {ph(r.route === r.shortest ? "เดินตามทางสั้นสุดพอดี" : "ไม่เดินย้อนและไม่วนกลับที่เดิม")}</>)}
           {G.warp > 0 && <><br />{ph(`วาร์ปกลับธง ${th(G.warp)} ครั้ง`)} {ph("ไม่นับก้าว")}</>}
           <br /><i />ช่องสีแดงอ่อนบนกระดานคือทางที่หลงเข้าไป
           {markersNote && <><br /><span className="dot" />จุดแดงคือช่องที่เลี้ยวผิด</>}
