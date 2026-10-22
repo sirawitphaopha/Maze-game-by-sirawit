@@ -143,8 +143,11 @@ export const EN: Record<string, string> = {
 
   // ── หน้าเล่นเกม ──
   "เส้นชมพูคือทางที่ไปถึงเส้นชัย เส้นสีอื่นคือทางแยกที่แตกออกไปแล้วไม่ถึง": "The pink line reaches the finish. The other colors are branches that dead-end.",
+  // ข้อความหลังยอมแพ้ (คำอธิบายเฉลย + รอบนี้ไม่นับสถิติ) Phr แปลทั้งประโยค ต้องมีคู่เต็มประโยค (เดิมขาด ภาษาอังกฤษยังขึ้นไทย เจอ 22 ต.ค. 2569)
+  "เส้นชมพูคือทางที่ไปถึงเส้นชัย เส้นสีอื่นคือทางแยกที่แตกออกไปแล้วไม่ถึง รอบนี้ไม่นับสถิติ": "The pink line reaches the finish. The other colors are branches that dead-end. This round won't count toward your stats.",
   "หยุดเวลาไว้ระหว่างที่ไม่ได้อยู่หน้านี้ กดเดินเพื่อเล่นต่อ": "The clock paused while you were away. Make a move to keep going.",
   "หยุดเวลาไว้ระหว่างที่ไม่ได้ดูหน้านี้ กดเดินเพื่อเล่นต่อ": "The clock paused while you were away. Make a move to keep going.",
+  "หยุดเวลาไว้ระหว่างที่ไม่ได้ดูหน้านี้": "The clock paused while you were away.",
   "พักเกมไว้ เวลาไม่เดิน กดเล่นต่อเมื่อพร้อม": "Game paused. The clock is stopped. Hit Resume when you're ready.",
   "ผังด่านของเกมนี้เสีย เปิดไม่ได้": "This game's maze data is damaged and can't be opened.",
   "กำลังเปิดด่านจากประวัติ": "Loading the maze from your history",

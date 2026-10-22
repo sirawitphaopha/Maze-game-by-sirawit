@@ -63,6 +63,9 @@ export default function DPad({ onMove, onBump }: Props) {
       onPointerUp={(e) => { if (e.pointerId === st.current.pid) release(); }}
       onPointerCancel={(e) => { if (e.pointerId === st.current.pid) release(); }}
       onLostPointerCapture={(e) => { if (e.pointerId === st.current.pid) release(); }}
+      // ตัวรับการแตะเปล่า ไม่ทำอะไร ให้ระบบช่วยเล็งของมือถือนับกรอบนี้ว่ากดได้ (พี่กันสั่ง 22 ต.ค. 2569 ขยายพื้นที่กดปุ่มลูกศร app/mobile.css)
+      // ไม่มีตัวนี้ แตะที่ว่างในกรอบใกล้ปุ่มธงหรือขอบวงกต ระบบยกนิ้วไปให้ปุ่มธงหรือวงกตแทน (ลองแล้วเกมปักธงเอง) · จอคอมไม่เปลี่ยน
+      onClick={() => {}}
     >
       {BTNS.map((b) => (
         <button

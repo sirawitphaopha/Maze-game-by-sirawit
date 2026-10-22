@@ -64,7 +64,8 @@ export default function ResultCard({ G, r, title, pills, markersNote, celebrate,
         </div>
         {/* เลขคะแนนกับแถบวัดสีตามระดับเดียวกับแถบคะแนนในหน้าประวัติ (พี่กันสั่ง 21 ต.ค. 2569 "ใส่สีคะแนนตามเส้นด้วย" "สีตามเส้นนี้") */}
         <div className={`score sc-${scoreTone(r.score)}`}>
-          <div className="snum"><b className="sbounce" aria-label={`${r.score}`}>{still ? r.score : shown}</b><span>/100</span></div>
+          {/* data-w = จำนวนหลักของคะแนนจริง มือถือกันที่ไว้เท่าคะแนนจริงตั้งแต่เริ่มนับ (app/mobile.css) เดิมนับจาก 9 เป็น 10 แล้วคำประเมินตกบรรทัด การ์ดยืดลง 66 จุดกลางแอนิเมชัน */}
+          <div className="snum"><b className="sbounce" aria-label={`${r.score}`} data-w={String(r.score).length}>{still ? r.score : shown}</b><span>/100</span></div>
           <div className="sgrade"><span className="k">คะแนนความแม่นยำ</span><b>{r.grade}</b></div>
         </div>
         <div className={`meter sc-${scoreTone(r.score)}`} aria-hidden="true"><div className="mfill" style={{ width: `${meter}%` }} /></div>

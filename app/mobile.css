@@ -139,10 +139,12 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 @keyframes mz-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .mz-mobile .playpage[data-sheet] .pg-set, .mz-mobile .msheet-back { animation: none; } }
 
-/* ก่อนกดเริ่มเกม และหลังจบเกม แตะวงกตหรือปุ่มเดินแล้วเลื่อนหน้าได้ (พี่กันสั่ง "เอานิ้วไปจับที่วงกต เราเลื่อนขึ้นลงไม่ได้เลย")
-   ต้องอยู่ในเงื่อนไขความกว้างเดียวกับกฎห้ามเลื่อนด้านบน */
+/* ก่อนกดเริ่มเกม และหลังจบเกม แตะวงกตแล้วเลื่อนหน้าได้ (พี่กันสั่ง "เอานิ้วไปจับที่วงกต เราเลื่อนขึ้นลงไม่ได้เลย")
+   ต้องอยู่ในเงื่อนไขความกว้างเดียวกับกฎห้ามเลื่อนด้านบน
+   ปุ่มเดินไม่อยู่ในกฎนี้แล้ว (22 ต.ค. 2569) แตะลูกศรครั้งแรกเริ่มเกมพร้อมเดิน (padMove ใน components/game/GameView.tsx) ปุ่มเดินจึงต้องรับนิ้วเหมือนตอนเล่น
+   เดิมปล่อยให้เลื่อนหน้า หน้าทดลองกดบน iPhone เจอระบบยกเลิกการแตะลูกศรก่อนเริ่ม 17 ใน 23 ครั้ง เพราะนิ้วขยับนิดเดียวก็กลายเป็นเลื่อนหน้า */
 @media (max-width: 759px) {
-  .board.live.scroll, .playpage.locked .dpad, .playpage.locked .dpad * { touch-action: pan-y !important; }
+  .board.live.scroll { touch-action: pan-y !important; }
 }
 
 /* ห้องทดลอง แถบปรับขึ้นก่อน กราฟเทียบไว้ล่างสุด (พี่กันสั่ง "เอากราฟไปไว้ล่างสุด เอาแถบปรับขึ้นมาอยู่ก่อน")
@@ -238,10 +240,99 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 /* ปุ่มลูกศรเป็นสี่เหลี่ยมจัตุรัสเท่ากันทุกปุ่ม ใหญ่พอกับนิ้ว (พี่กันสั่ง "ขยายปุ่มกด เน้นปุ่มต้องสมมาตรใหญ่พอกับนิ้ว") */
 .mz-mobile .playpage .dpad { grid-template-columns: repeat(3, 76px); grid-template-rows: repeat(3, 76px); gap: 8px; width: auto; max-width: none; justify-content: center; }
 .mz-mobile .playpage .dbtn svg { width: 38px; height: 38px; }
+/* พื้นที่กดของปุ่มลูกศรกว้างกว่าตัวปุ่ม หน้าตาปุ่มเท่าเดิม (พี่กันสั่ง 22 ต.ค. 2569 "ปุ่มกดแม่งเรากดไม่โดน เราอยากให้แถบที่กดได้มันขยายกว่านี้หน่อย")
+   เดิมกดติดแค่สี่เหลี่ยม 244 × 252 ที่ล้อมปุ่มพอดี ข้างซ้ายขวาของปุ่มที่ว่างข้างละราว 77 จุด (จอ 430) แตะแล้วเงียบ
+   กรอบรับนิ้ว (.dpad) ยืดเต็มความกว้างเท่าวงกต ปุ่มยังอยู่กลางที่เดิม (ตารางจัดกลางด้วย justify-content) · เว้นขอบจอ 16 จุดไว้ มือที่จับเครื่องจะได้ไม่โดน
+   ยื่นขึ้นลงข้างละ 6 จุดด้วยขอบนอกติดลบคู่กับขอบในที่เพิ่มเท่ากัน ปุ่มไม่ขยับ ของข้างล่างไม่ขยับ · ขึ้นไปชนขอบล่างวงกตพอดี (ช่องไฟ .play 6)
+   ลงไปไม่ชนแถวปุ่มธง เหลือระยะกันชน 6 จุด (ช่องไฟ .pg-ctrl 12) · ยื่นเท่ากันสองข้าง จุดกลางของกรอบจึงอยู่ที่กลางกากบาทเหมือนเดิม
+   ใช้ตัวกรอบเองไม่ใช้แผ่นใส ::before เพราะระบบช่วยเล็งของมือถือเห็นแค่ตัวกรอบ แตะในแผ่นใสใกล้ปุ่มธง ระบบยกนิ้วไปให้ปุ่มธง (ลองแล้วเกมปักธงเอง)
+   ทิศคิดจากมุมรอบจุดกลางของกรอบ (components/game/DPad.tsx) แตะทางซ้ายของปุ่มซ้ายนับเป็นซ้าย
+   นิ้วทะลุตัวปุ่มลูกศรไปถึงกรอบ (pointer-events none) ระบบช่วยเล็งจะเห็นกรอบเป็นของชิ้นเดียว · ถ้าปุ่มลูกศรรับนิ้วเอง ระบบตัดกรอบทิ้งแล้วเลือกระหว่างปุ่มลงกับปุ่มธง
+   แตะใต้ปุ่มลงในกรอบ จอ 360 ได้ปุ่มกลับธงกับปุ่มพักแทน (ลองแล้ว) · ปุ่มที่กำลังกด (.on) ยุบลงแทน :active ที่หายไป หน้าตาตอนกดเท่าเดิม */
+.mz-mobile .playpage .dpad { margin: -6px 0; padding-block: 10px; }
+.mz-mobile .playpage .dpad .dbtn { pointer-events: none; }
+.mz-mobile .playpage .dpad .dbtn.on { scale: .97; }
+
+/* แถวปุ่มธง (ปักธง กลับธง พัก ตั้งค่า) ชิดล่างสุดของจอ ปุ่มลูกศรโตเต็มที่ว่างที่ได้คืน (พี่กันสั่ง 22 ต.ค. 2569 "เอาวงกลมแดง ขยับไปล่างสุด แล้วไปขยายปุ่มกด")
+   เดิมใต้แถวปุ่มธงเหลือที่ว่างอย่างน้อย 24 จุด จอสูงที่วงกตกว้างเต็มแล้วเหลือมากกว่านั้น (iPhone 430 เปิดจากไอคอนเหลือราว 40 จุดเหนือขอบล่าง)
+   · หน้าเล่นเกมสูงพอดีจอ (height ตายตัว ไม่ใช่ min-height เพราะหน่วย cq ข้างล่างอ่านความสูงได้เฉพาะกล่องที่สูงตายตัว ลองแล้ว min-height ได้ 0)
+     เหลือ 8 จุดเหนือขอบล่างของ iPhone (6 คือระยะใต้แถบบน .wrap) · ขนาดวงกตยังคิดจาก --mz-rest เท่าเดิม ที่ว่างไม่ไปแย่งวงกต
+   · ก้อนปุ่ม (.pg-ctrl) ยืดเต็มที่เหลือ แถวปุ่มธงชิดล่าง (margin-top auto) · ปุ่มลูกศรสี่เหลี่ยมเท่ากันทุกปุ่ม ด้านละ --c คิดจากขนาดก้อนปุ่ม (หน่วย cq)
+     สูงก้อน = 3c + 84 (ช่องไฟปุ่ม 16 · ขอบใน 20 ลบขอบนอกติดลบ 12 · ช่องไฟก่อนแถวธง 12 · แถวธง 48) · กว้างไม่เกินแถว (3c + 40 ช่องไฟแนวนอน ดูกฎถัดไป) · เล็กสุด 76 เท่าเดิม (ก้อนต่ำสุด 312)
+   · ไอคอนสามเหลี่ยมโตตามปุ่ม (ครึ่งหนึ่งของด้านปุ่ม เท่าเดิม 38 ต่อ 76) · พื้นที่กดยังเป็นทั้งกรอบ .dpad ที่ยืดตาม จุดกลางกรอบอยู่กลางกากบาท (align-content center)
+   · ใช้ทุกตอนที่มีปุ่มลูกศร (ก่อนเริ่ม ระหว่างเล่น พัก ยอมแพ้แล้ว) · ยอมแพ้แล้วหน้าตาเท่าระหว่างเล่น ไม่มีอะไรขยับ (คำอธิบายเฉลยขึ้นแทนที่ปุ่มลูกศร กฎ .solnote ข้างล่าง)
+     ตอนชนะ ก้อนปุ่มไม่มีปุ่มลูกศร (การ์ดผลแทน) กฎทั้งหมดไม่ทำงาน การ์ดสูงตามเนื้อหาเหมือนเดิม */
+.mz-mobile .playpage .play:has(> .pg-ctrl > .dpad) { height: calc(100dvh - var(--bar-h, 56px) - 6px - 8px - env(safe-area-inset-bottom, 0px)); }
+.mz-mobile .playpage .pg-ctrl:has(> .dpad) { position: relative; flex: 1 1 0; min-height: 312px; container-type: size; }
+.mz-mobile .playpage .pg-ctrl:has(> .dpad) > .dpad { --c: max(76px, min(calc((100cqw - 40px) / 3), calc((100cqh - 84px) / 3))); flex: 1 1 auto; align-content: center; grid-template-columns: repeat(3, var(--c)); grid-template-rows: repeat(3, var(--c)); column-gap: 20px; }
+/* ปุ่มซ้ายกับปุ่มขวาห่างกลางออกไปทางขอบจอข้างละ 12 จุด (ช่องไฟแนวนอน 20 แนวตั้ง 8 เท่าเดิม) ปุ่มขึ้นลงอยู่ที่เดิม ปุ่มยังสี่เหลี่ยมเท่ากันทุกปุ่ม วงกตไม่เปลี่ยน
+   ที่มา พี่กันทัก "ปุ่มซ้ายขวามันชิดกลางเกินไป แต่เราชอบกดตอนมันเลยมาขอบกว่านั้น" · หน้าทดลองกดบน iPhone จริง 22 ต.ค. 2569 นิ้วตกนอกปุ่มขวา 15 ใน 21 ครั้ง
+   ส่วนใหญ่เลยออกไปทางขวา 4 ถึง 13 จุด (docs/tap-test-2026-10-22/README.md) · พี่กันตอบ "ขยับ" · ทิศยังคิดจากมุมรอบจุดกลางกรอบเหมือนเดิม */
+.mz-mobile .playpage .pg-ctrl:has(> .dpad) > .dpad .dbtn svg { width: calc(var(--c) / 2); height: calc(var(--c) / 2); }
+.mz-mobile .playpage .pg-ctrl:has(> .dpad) > .flagrow { margin-top: auto; }
+
+/* ข้อความสถานะระหว่างเล่น (ปักธงแล้ว · ยังไม่ได้ปักธง · กลับไปที่ธงแล้ว) ลอยทับแถวเวลากับก้าว ไม่กินที่ในแนวตั้ง (รายงานมือถือข้อ 4 ครึ่งหลัง)
+   เดิมแทรกบรรทัดเหนือวงกต ดันวงกตลง 20 จุด ปุ่มลูกศรหดจาก 87 เหลือ 80 ใต้นิ้ว (วัดจอ iPhone 430 ตอนกดปักธง) แล้วเด้งกลับใน 2.6 วินาที
+   · ทับแถวเวลากับก้าวไม่ทับวงกต ผู้เล่นเริ่มที่ทางเข้าขอบบนวงกต ถ้าทับขอบบนวงกตจะบังตัวละครพอดี · นาฬิกายังเดินใต้ป้าย ป้ายหายก็เห็นเวลาต่อ
+   · นิ้วทะลุป้าย (pointer-events none) · จอแคบข้อความยาวตัดเป็นสองบรรทัด ป้ายยื่นลงทับขอบบนกรอบวงกตได้ ไม่ดันอะไร
+   · ภาษาอังกฤษข้อความยาวกว่า จอ 360 ลงไปตัดสองบรรทัด บรรทัดชิดขึ้น (16 ไม่ใช่ 18 ไทยต้องเผื่อสระบนล่าง อังกฤษไม่ต้อง) ป้ายสองบรรทัดยื่นลงแค่ขอบกรอบวงกต ไม่ถึงตัววงกต
+     บรรทัดเดียวยังสูง 26 เท่าแถวเวลากับก้าว
+   · ข้อความพักเกมไม่ขึ้น ม่านพักบนวงกตบอกอยู่แล้ว (พักเกมไว้ เวลาไม่เดินระหว่างนี้)
+   · เกมจบแล้ว (ended) บรรทัดสถานะไม่ขึ้นเลย คำอธิบายเฉลยไปอยู่ที่อื่น (กฎถัดไป) */
+.mz-mobile .playpage:not(.ended) .pg-hud { position: relative; }
+.mz-mobile .playpage:not(.ended) .status:not(:empty) { position: absolute; top: 0; left: 0; right: 0; z-index: 4; width: fit-content; max-width: 100%; min-height: 0; margin-inline: auto; padding: 3px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--ink) 35%, transparent); font-size: 13.5px; line-height: 18px; color: var(--ink); text-align: center; pointer-events: none; }
+.mz-mobile[data-lang="en"] .playpage:not(.ended) .status:not(:empty) { padding-block: 4px; line-height: 16px; }
+.mz-mobile .playpage:has(.pausecover) .status { display: none; }
+
+/* ไม่มีข้อความไหนบนหน้าเล่นเกมดันจอให้เลื่อน (พี่กันสั่ง 22 ต.ค. 2569 "ห้ามมีอักษรอะไร ขึ้นที่หน้าเล่นเกม ที่มันทำให้เว็บเลื่อนจากเดิม")
+   · เกมจบแล้วบรรทัดสถานะเหนือวงกตไม่ขึ้น (เดิมคำอธิบายเฉลยยาวสองถึงสามบรรทัด ดันวงกตลง 41 จุด ปุ่มหดจาก 87 เหลือ 76 แถวปุ่มธงขยับ)
+   · ยอมแพ้แล้ว คำอธิบายเฉลย (.solnote ใน components/game/GameView.tsx) ขึ้นเป็นแผ่นแทนที่ปุ่มลูกศร ซึ่งใช้เดินไม่ได้แล้ว
+     ปุ่มลูกศรซ่อนแบบยังกินที่ (visibility) แถวปุ่มธงอยู่ที่เดิม ปุ่มตั้งค่ายังกดเริ่มด่านใหม่ได้ · แผ่นสูงถึงแค่เหนือแถวปุ่มธง (48 + ช่องไฟ 12)
+   · ชนะแล้วกดดูเฉลยเทียบ คำอธิบาย (.wsolnote) ขึ้นท้ายการ์ดใต้ปุ่มที่กด เดิมขึ้นเหนือวงกตซึ่งเลื่อนพ้นจอไปแล้ว มองไม่เห็นและดันการ์ดลง
+   · บรรทัดสถานะการบันทึกในการ์ด (กำลังบันทึก 1 บรรทัด แล้วกลายเป็น ยังไม่เข้าระบบ 3 บรรทัด) ย้ายไปท้ายการ์ด สูงขึ้นแล้วไม่ดันปุ่มเล่นด่านใหม่ลงใต้นิ้ว
+     ลำดับท้ายการ์ด ปุ่ม แล้วสถานะการบันทึก แล้วคำอธิบายเฉลย (order) · การ์ดเป็น flex แนวตั้งอยู่แล้ว (globals.css .wincard) */
+.mz-mobile .playpage.ended .status { display: none; }
+.mz-mobile .playpage .solnote[hidden] { display: flex !important; }
+.mz-mobile .playpage .solnote { position: absolute; inset: 0 0 60px; z-index: 2; flex-direction: column; align-items: center; justify-content: center; margin: 0; padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 15px; line-height: 1.7; color: var(--ink); text-align: center; text-wrap: pretty; }
+.mz-mobile .playpage .pg-ctrl:has(> .solnote) > .dpad { visibility: hidden; }
+.mz-mobile .playpage .wincard > .savestate { order: 1; }
+.mz-mobile .playpage .wsolnote[hidden] { display: block !important; order: 2; }
+.mz-mobile .playpage .wsolnote { margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--muted); }
+/* เลขคะแนนในการ์ดผลนับขึ้นจาก 0 แต่กันที่ไว้เท่าจำนวนหลักของคะแนนจริงตั้งแต่แรก (data-w ใน components/game/ResultCard.tsx)
+   เดิมนับจาก 9 เป็น 10 เลขกว้างขึ้น คำประเมินข้างเลขตกไปบรรทัดใหม่ การ์ดยืดลง 66 จุด ปุ่มเล่นด่านใหม่เลื่อนลงกลางแอนิเมชัน (วัดจอ 430)
+   ตัวเลขฟอนต์นี้กว้างเท่ากันทุกตัว (tabular-nums) ch จึงเท่าหนึ่งหลักพอดี หน้าตาตอนนับเสร็จเท่าเดิม · ใช้กับการ์ดในตัวดูย้อนด้วย */
+.mz-mobile .snum b[data-w="1"] { min-width: 1ch; }
+.mz-mobile .snum b[data-w="2"] { min-width: 2ch; }
+.mz-mobile .snum b[data-w="3"] { min-width: 3ch; }
+
+/* แถบรอส่งไม่ขึ้นระหว่างเล่นเกม (พี่กันสั่ง 22 ต.ค. 2569 "อย่าเสือกขึ้นแบบนี้ตอนเล่นเกม มันขัดจังหวะ ห้ามขึ้นมาตอนเล่นเกมเลย มันควรส่งข้อมูลของมันเองจนกว่าจะได้")
+   เดิมแถบโผล่บนสุดของหน้าเล่นเกม ดันวงกตกับปุ่มลูกศรลงไปราว 230 จุดกลางเกม · ซ่อนทุกตอนบนหน้าเล่นเกม
+   ซ่อนแค่หน้าตา ตัวแถบยังอยู่ในหน้า ตัวจับเวลาส่งซ้ำเองยังเดิน 20 40 80 160 แล้วทุก 300 วินาที ไม่หยุดเอง (components/ui/PendingBar.tsx)
+   รอบแรกให้แถบกลับมาตอนเกมจบ แต่แถบโผล่บนสุดแล้วดันวงกตกับการ์ดผลลง 180 จุด ผิดคำสั่ง 22 ต.ค. 2569 "ห้ามมีอักษรอะไร ขึ้นที่หน้าเล่นเกม ที่มันทำให้เว็บเลื่อนจากเดิม"
+   เกมที่เพิ่งชนะ การ์ดผลบอกเองว่าเข้าระบบแล้วหรือยัง · ของค้างเกมก่อน ๆ เห็นที่หน้าอื่น (สกิล save-status ข้อ 4 ของค้างห้ามเงียบ) */
+.mz-mobile body:has(.playpage) .pendwrap { display: none; }
+
+/* หยุดเวลาเพราะไม่ได้ดูหน้านี้ (สลับแอป จอดับ ไปหน้าอื่นแล้วกลับมา) เป็นแผ่นทับวงกตแบบปุ่มเริ่มเกม
+   (พี่กันสั่ง 22 ต.ค. 2569 "ตัวอักษร หยุดเวลาไว้ระหว่างที่ไม่ได้ดูหน้านี้ กดเดินเพื่อเล่นต่อ ห้ามขึ้นตรงนี้ เพราะมันทำเว็บที่กำหนดไว้หมดแล้วพัง ไปเอามันพาดทับวงกต เหมือนปุ่มกดเริ่มเกม")
+   เดิมขึ้นในบรรทัดสถานะเหนือวงกต ดันวงกต ปุ่มลูกศร แถวปุ่มธงลงทั้งก้อน · ตอนนี้บรรทัดสถานะซ่อน วงกตเบลอ ปุ่มเล่นต่ออยู่กลาง ข้อความอยู่ใต้ปุ่ม
+   คลาส away ที่ .playpage มาจาก components/game/GameView.tsx · หายเมื่อกดเล่นต่อ หรือกดลูกศรแล้วเดินได้ (นาฬิกาเดินต่อพร้อมกัน) */
+.mz-mobile .playpage.away .status { display: none; }
+.mz-mobile .playpage.away .pg-board canvas.board { filter: blur(5px); }
+.mz-mobile .awaycover[hidden] { display: flex !important; }
+.mz-mobile .awaycover { position: absolute; inset: 0; z-index: 3; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-radius: 8px; text-align: center; background: color-mix(in srgb, var(--surface) 42%, transparent); }
+.mz-mobile .awaycover .btn { flex: none; width: auto; min-height: 58px; padding-inline: 36px; border-radius: 16px; font-size: 19px; gap: 10px; box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent); }
+.mz-mobile .awaycover span { padding: 4px 12px; border-radius: 8px; background: var(--surface); font-size: 14px; color: var(--ink); }
 
 /* เวลากับก้าว ไม่มีกรอบ ขนาดเล็กลงราว 30% (พี่กันสั่ง 21 ต.ค. 2569 "เวลา กับ ก้าว ลองไม่เอากรอบ และลดขนาดอีก 30%") */
 .mz-mobile .playpage .hud { justify-content: center; gap: 28px; border: 0; border-radius: 0; background: none; }
 .mz-mobile .playpage .hud > div { flex: none; gap: 6px; padding: 2px 0; }
+/* ตัวเลขยาวขึ้นแล้วเวลากับก้าวไม่ขยับซ้ายขวา (พี่กันสั่ง 22 ต.ค. 2569 "ห้ามมีอักษรอะไร ขึ้นที่หน้าเล่นเกม ที่มันทำให้เว็บเลื่อนจากเดิม")
+   เดิมทั้งแถวจัดกลาง ก้าว 9 เป็น 10 เป็น 100 ทั้งแถวเลื่อนซ้ายครึ่งหลักทุกครั้ง · ตอนนี้แบ่งครึ่งจอ เวลาชิดขวาของครึ่งซ้าย ก้าวชิดซ้ายของครึ่งขวา ช่องไฟกลาง 28 เท่าเดิม
+   เลขก้าวงอกไปทางขวา ป้าย "ก้าว" อยู่ที่เดิม · เลขเวลากันที่ไว้ 7 หลัก (59:59.9) ชิดขวา ป้าย "เวลา" ไม่ขยับตอนเกิน 10 นาที (ตัวเลขเป็นฟอนต์ความกว้างเท่ากันทุกตัว ch จึงพอดีหลัก) */
+.mz-mobile .playpage .hud > div:nth-child(1), .mz-mobile .playpage .hud > div:nth-child(2) { flex: 1 1 0; min-width: 0; }
+.mz-mobile .playpage .hud > div:nth-child(1) { justify-content: flex-end; }
+.mz-mobile .playpage .hud > div:nth-child(2) { justify-content: flex-start; }
+.mz-mobile .playpage .hud > div:nth-child(1) b { min-width: 7ch; text-align: right; }
 .mz-mobile .playpage .hud > div + div { border-left: 0; }
 .mz-mobile .playpage .hud .k { font-size: 10.5px; }
 .mz-mobile .playpage .hud b { font-size: 13.5px; }

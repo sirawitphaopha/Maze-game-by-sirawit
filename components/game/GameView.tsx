@@ -95,9 +95,14 @@ export default function GameView() {
   // ระหว่างพักกระดานถูกปิดไว้ ไม่ให้แอบดูทางโดยไม่เสียเวลา · เดิน ปักธง กลับไปที่ธง ใช้ไม่ได้จนกว่าจะกดเล่นต่อ
   const [held, setHeld] = useState(false);
   const heldRef = useRef(false);
+  /* หยุดเวลาเองเพราะไม่ได้ดูหน้านี้ (สลับแอป จอดับ หรือไปหน้าอื่นแล้วกลับมา) · หายเมื่อเดินได้ กดเล่นต่อ พักเกม หรือเริ่มด่านใหม่
+     มือถือแสดงเป็นแผ่นทับวงกตแบบปุ่มเริ่มเกม แทนบรรทัดสถานะที่ดันวงกตกับปุ่มลงทั้งจอ (พี่กันสั่ง 22 ต.ค. 2569 "ห้ามขึ้นตรงนี้ ... ไปเอามันพาดทับวงกต เหมือนปุ่มกดเริ่มเกม")
+     จอคอมยังขึ้นในบรรทัดสถานะเหมือนเดิม (แผ่นซ่อนด้วย hidden · app/mobile.css เปิดให้เห็น) */
+  const [away, setAway] = useState(() => boot.G?.status === "play");
   /* มือถือเท่านั้น (พี่กันสั่ง 21 ต.ค. 2569)
      · ปุ่มเริ่มเกม "ถ้ายังไม่กดเริ่มเกม เราจะสัมผัสอะไรทั้งเอานิ้วลาก ทั้งกดแป้น เราจะทำไม่ได้" เดิมเลื่อนหน้าแล้วนิ้วโดนวงกต เกมเริ่มเอง
-       ก่อนกดเริ่ม (armed) ลากนิ้ว ปุ่มลูกศร ปักธง คีย์บอร์ด ไม่ทำงาน และแตะวงกตแล้วเลื่อนหน้าได้
+       ก่อนกดเริ่ม (armed) ลากนิ้ว ปักธง คีย์บอร์ด ไม่ทำงาน และแตะวงกตแล้วเลื่อนหน้าได้
+       ปุ่มลูกศรบนจอแตะครั้งแรกแล้วเริ่มเกมพร้อมเดินเลย (padMove · พี่กันตอบ "เอา" 22 ต.ค. 2569 หน้าทดลองกดบน iPhone เจอแตะลูกศรก่อนกดเริ่มแล้วเงียบ 23 ครั้งใน 4 รอบ)
      · แผ่นตั้งค่าด่านกับวิธีเล่น "ทำเป็นปุ่มกดดู จะไม่อยู่หน้าเล่นเกม" กดปุ่มแล้วเลื่อนขึ้นจากขอบล่าง (sheet)
      จอคอมไม่ใช้ทั้งสองอย่าง (isMobile เป็นเท็จ ปุ่มกับแผ่นซ่อนด้วย hidden · app/mobile.css เปิดให้เห็น) */
   const [isMobile, setIsMobile] = useState(false);
@@ -128,6 +133,18 @@ export default function GameView() {
     }
     heldRef.current = on;
     setHeld(on);
+    setAway(false);
+  }, []);
+
+  /** ปุ่มเล่นต่อบนแผ่นหยุดเวลา (มือถือ) · นาฬิกาเดินต่อจากเดิม ช่วงที่หยุดไม่นับ */
+  const resumeAway = useCallback(() => {
+    const g = G.current;
+    if (!g) return;
+    const now = performance.now();
+    resume(g, now);
+    setTime(clock(g, now));
+    setStatus("");
+    setAway(false);
   }, []);
 
   useEffect(() => { setSnap(snapOf(G.current, prefs)); }, [ver, prefs]);
@@ -181,6 +198,7 @@ export default function GameView() {
     setWin(null); setSolOn(false); setSave({ kind: "none" }); setTime(0);
     heldRef.current = false; setHeld(false);
     armedRef.current = false; setArmed(false);
+    setAway(false);
     setStatus("");
     sync();
   }, [stopSol, sync]);
@@ -244,6 +262,9 @@ export default function GameView() {
     };
     requestAnimationFrame(step);
   };
+  /** ปุ่มลูกศรบนจอ · มือถือก่อนกดเริ่มเกม แตะลูกศรครั้งแรกเริ่มเกมให้เองแล้วเดินทิศนั้นเลย ไม่ต้องกดปุ่มเริ่มเกมก่อน (ปุ่มเริ่มเกมยังกดได้)
+      ลากนิ้วบนวงกต ปักธง แป้นพิมพ์ ยังต้องเริ่มก่อนเหมือนเดิม · จอคอมไม่มีการล็อก ทำงานเหมือนเดิม */
+  const padMove = (d: Dir) => { if (locked()) start(); return doMove(d); };
 
   // ทางให้ชุดทดสอบอ่านสถานะเกมตอนรันในเครื่องเท่านั้น · ตอนสร้างเว็บจริงเงื่อนไขนี้เป็นเท็จ โค้ดส่วนนี้ถูกตัดทิ้ง
   useEffect(() => {
@@ -267,6 +288,7 @@ export default function GameView() {
       const g = G.current;
       if (document.visibilityState === "hidden" && g && pause(g, performance.now())) {
         setStatus("หยุดเวลาไว้ระหว่างที่ไม่ได้ดูหน้านี้ กดเดินเพื่อเล่นต่อ");
+        setAway(true);
       }
     };
     document.addEventListener("visibilitychange", onVis);
@@ -341,7 +363,7 @@ export default function GameView() {
     const r = move(g, d, performance.now());
     if (!r.moved) return false;
     // หยุดนาฬิกาไว้แล้วก้าวต่อ นาฬิกาเดินแล้ว ข้อความหยุดเวลาต้องหายด้วย (เดิมค้าง docs/BUGHUNT-2026-10-21.md ข้อ 9)
-    if (wasReady || wasPaused) setStatus("");
+    if (wasReady || wasPaused) { setStatus(""); setAway(false); }
     if (!r.won) SFX.step(r.back);
     if (r.won) onWin(g);
     sync();
@@ -456,6 +478,7 @@ export default function GameView() {
   const bestT = snap.bestT, bestS = snap.bestS;
   const over = snap.status === "won";
   const lockedNow = isMobile && !armed && snap.status === "ready";
+  const awayNow = away && !held && snap.status === "play";
   /* คำอธิบายปุ่มครบทุกปุ่ม (พี่กันสั่ง 21 ต.ค. 2569 "เขียนคำอธิบายปุ่มให้ครบ") · จอคอมอยู่ใต้ปุ่มเดิน มือถืออยู่ในแผ่นตั้งค่าด่าน */
   const helpList = (
     <>
@@ -475,8 +498,9 @@ export default function GameView() {
   /* โครงหน้า (จัดใหม่ 21 ต.ค. 2569 พี่กันสั่ง "หน้าเล่นเกมในโหมดเดสก์ท็อป จัดให้มันเต็มจอ ... ออกแบบต่างจากมือถือได้เลย")
      จอคอม สามคอลัมน์ ซ้ายสถานะการเล่นกับปุ่มเดิน · กลางกระดานพอดีจอ · ขวาตั้งค่าด่านเลื่อนในตัวเอง
      ลำดับในโค้ด hud กระดาน ปุ่ม ตั้งค่า = ลำดับบนจอแคบ (globals.css หัวข้อหน้าเล่นเกม) */
+  /* คลาส ended = เกมนี้จบแล้ว (ชนะหรือยอมแพ้) · มือถือซ่อนแถบรอส่งระหว่างที่เกมยังไม่จบ (app/mobile.css) จอคอมไม่มีกฎของคลาสนี้ */
   return (
-    <div className={`view playpage wide${lockedNow ? " locked" : ""}`} data-sheet={sheet ?? undefined}>
+    <div className={`view playpage wide${lockedNow ? " locked" : ""}${over || snap.status === "gaveup" ? " ended" : ""}${awayNow ? " away" : ""}`} data-sheet={sheet ?? undefined}>
       <div className="play">
         <div className="pg-hud">
           <div className="hud">
@@ -506,10 +530,17 @@ export default function GameView() {
             ) : (
               <div className="boardskel" aria-label="กำลังเปิดด่าน" />
             )}
-            {/* ปุ่มเริ่มเกม มือถือเท่านั้น · hidden ไว้ จอคอมไม่เห็น app/mobile.css เปิดให้เห็น · ทับวงกตแต่ยังมองเห็นวงกต แตะแล้วเลื่อนหน้าได้ */}
+            {/* ปุ่มเริ่มเกม มือถือเท่านั้น · hidden ไว้ จอคอมไม่เห็น app/mobile.css เปิดให้เห็น · ทับวงกตแต่ยังมองเห็นวงกต แตะแล้วเลื่อนหน้าได้ · แตะปุ่มลูกศรก็เริ่มเกมได้เหมือนกัน (padMove) */}
             {game && snap.status === "ready" && !armed && (
               <div className="startcover" hidden>
                 <button type="button" className="btn primary" onClick={start}><Icon name="play" size={18} />เริ่มเกม</button>
+              </div>
+            )}
+            {/* แผ่นหยุดเวลา มือถือเท่านั้น · hidden ไว้ จอคอมไม่เห็น app/mobile.css เปิดให้เห็น · ทับวงกตที่เบลอไว้ แบบปุ่มเริ่มเกม */}
+            {awayNow && (
+              <div className="awaycover" hidden>
+                <button type="button" className="btn primary" onClick={resumeAway}><Icon name="play" size={18} />เล่นต่อ</button>
+                <span>หยุดเวลาไว้ระหว่างที่ไม่ได้ดูหน้านี้</span>
               </div>
             )}
             {held && (
@@ -536,12 +567,15 @@ export default function GameView() {
                   <button type="button" className="btn primary" onClick={() => newLevel(prefs)}><Icon name="restart" size={16} />เล่นด่านใหม่</button>
                   <button type="button" className="btn solbtn" aria-pressed={solOn} onClick={toggleSol}><Icon name="eye" size={16} />{solOn ? "ซ่อนเฉลย" : "ดูเฉลยเทียบ"}</button>
                 </div>
+                {/* คำอธิบายเฉลย มือถือเท่านั้น ท้ายการ์ดใต้ปุ่มที่กด ไม่แทรกบรรทัดเหนือวงกตแล้วดันการ์ดลง (พี่กันสั่ง 22 ต.ค. 2569 "ห้ามมีอักษรอะไร ขึ้นที่หน้าเล่นเกม ที่มันทำให้เว็บเลื่อนจากเดิม")
+                    hidden ไว้ จอคอมเห็นในบรรทัดสถานะเหมือนเดิม */}
+                {solOn && <p className="wsolnote" hidden><Phr>{SOL_MSG}</Phr></p>}
               </ResultCard>
             </div>
           )}
           {!over && (
             <>
-              <DPad onMove={doMove} onBump={bump} />
+              <DPad onMove={padMove} onBump={bump} />
               <div className="flagrow">
                 <button type="button" className="btn fbtn" onClick={doFlag} aria-keyshortcuts="F"><span className="flagico" aria-hidden="true" />ปักธง<kbd className="kc" aria-hidden="true">F</kbd></button>
                 <button type="button" className="btn fbtn" onClick={doBack} aria-keyshortcuts="R"><Icon name="undo" size={16} /><span className="lfull">กลับไปที่ธง</span><span className="lshort" hidden>กลับธง</span><kbd className="kc" aria-hidden="true">R</kbd></button>
@@ -557,6 +591,9 @@ export default function GameView() {
               <dl className="keyhelp">
                 {helpList}
               </dl>
+              {/* ยอมแพ้แล้ว คำอธิบายเฉลยขึ้นแทนที่ปุ่มลูกศร (ใช้เดินไม่ได้แล้ว) มือถือเท่านั้น · ไม่แทรกบรรทัดเหนือวงกตแล้วดันจอลง
+                  (พี่กันสั่ง 22 ต.ค. 2569 "ห้ามมีอักษรอะไร ขึ้นที่หน้าเล่นเกม ที่มันทำให้เว็บเลื่อนจากเดิม") · hidden ไว้ จอคอมเห็นในบรรทัดสถานะเหมือนเดิม */}
+              {snap.status === "gaveup" && status && <p className="solnote" hidden><Phr>{status}</Phr></p>}
             </>
           )}
         </div>

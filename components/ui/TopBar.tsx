@@ -69,7 +69,9 @@ export default function TopBar() {
     const put = () => root.style.setProperty("--bar-h", `${Math.ceil(el.getBoundingClientRect().height)}px`);
     put();
     ro.current = new ResizeObserver(put);
-    ro.current.observe(el);
+    // วัดทั้งกล่องรวมขอบใน (border-box) · แถบบนมือถือเว้นขอบบนของเครื่องด้วย padding (app/mobile.css) ขอบบนมาทีหลังได้ (แอปสลับเป็นเต็มจอหลังเปิดหน้า)
+    // วัดแค่เนื้อใน (ค่าเริ่มต้น) แถบสูงจาก 45 เป็น 119 แล้วตัววัดไม่รู้ --bar-h ค้าง 45 หน้ายาวเกินจอ 40 จุด แถวปุ่มธงตกจอ (เจอจากหน้าทดลองกดบน iPhone 22 ต.ค. 2569)
+    ro.current.observe(el, { box: "border-box" });
   }, []);
 
   if (path === "/login") return null;
