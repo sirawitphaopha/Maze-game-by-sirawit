@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ALGOS, DEF, PDEF, generate } from "../lib/maze/generators.ts";
 import type { AlgoId } from "../lib/maze/generators.ts";
-import { build, cleanStubs, countChoices, countLoops, distFrom, openNb, solve } from "../lib/maze/grid.ts";
+import { braidOps, build, cleanStubs, countChoices, countLoops, deadEnds, distFrom, openNb, shortStubs, solve, statMarks } from "../lib/maze/grid.ts";
 
 /* ตรรกะเขาวงกต — ทุกช่องไปถึงได้ ไม่มีวง ตัวเก็บกวาดไม่ทำเขาวงกตพัง และนิยามทางหลอกยาวตามเอกสาร */
 
@@ -88,4 +88,25 @@ test("กิ่งที่มีช่องรวมเยอะแต่ต�
   const path = [22, 17, 12, 7, 2];
   assert.equal(countChoices(n, R, B, path, 3), 1);
   assert.equal(countChoices(n, R, B, path, 4), 0, "ช่องรวม 4 แต่ลึกแค่ 3 ต้องไม่นับ");
+});
+
+test("การ์ดสถิติห้องทดลอง ช่องที่ไฮไลต์ (statMarks) นับได้เท่าตัวเลขบนการ์ดทุกใบ ทุกวิธี มีและไม่มีทางวน", () => {
+  for (const a of ALGOS) {
+    for (const n of [9, 25]) {
+      for (const bp of [0, 0.5]) {
+        for (const far of [false, true]) {
+          const f = build(n, generate(n, a.id));
+          if (bp) braidOps(n, f.R, f.B, bp);
+          const r = solve(n, f.R, f.B, far);
+          for (const L of [2, 5, 9]) {
+            const m = statMarks(n, f.R, f.B, r.path, L, r.ex);
+            assert.equal(m.dead.length, deadEnds(n, f.R, f.B, r.ex), a.id + " ทางตัน");
+            assert.equal(m.len.length, r.path.length, a.id + " เส้นทางเฉลย");
+            assert.equal(m.ch.length, countChoices(n, f.R, f.B, r.path, L), a.id + " ทางหลอกยาว L " + L);
+            assert.equal(m.short.length, shortStubs(n, f.R, f.B, L, r.ex), a.id + " ทางตันสั้น L " + L);
+          }
+        }
+      }
+    }
+  }
 });

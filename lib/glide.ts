@@ -5,6 +5,29 @@
    กล่องเห็นอยู่ทั้งกล่องแล้วไม่เลื่อน · ลดการเคลื่อนไหวไปทีเดียว */
 import { reducedMotion } from "@/lib/draw/paint";
 
+/** เลื่อนกล่องที่เลื่อนในตัวเอง (แผงซ้ายขวาของห้องทดลอง) ไปตำแหน่ง to ทีละเฟรม ตามสกิล web-craft ข้อ 6.21 ⑩ กดแล้วต้องเลื่อน ไม่วาร์บ
+    ไกลขึ้นช้าลงนิดหน่อย 280 ถึง 620 มิลลิวินาที ออกช้า เร่งกลาง หยุดนุ่ม · หมุนล้อ แตะ กดคีย์ หยุดทันที
+    แท็บที่ซ่อนอยู่ไม่ยิงจังหวะวาดจอ กับเครื่องที่ตั้งลดการเคลื่อนไหว ไปถึงทันที */
+export function glideBox(el: HTMLElement, to: number): void {
+  const start = el.scrollTop, end = Math.max(0, Math.min(to, el.scrollHeight - el.clientHeight)), dist = end - start;
+  if (!dist) return;
+  if (document.hidden || reducedMotion()) { el.scrollTop = end; return; }
+  const dur = Math.min(620, Math.max(280, Math.abs(dist) * 0.42)), t0 = performance.now();
+  let stop = false;
+  const cancel = () => { stop = true; };
+  el.addEventListener("wheel", cancel, { passive: true });
+  el.addEventListener("touchstart", cancel, { passive: true });
+  window.addEventListener("keydown", cancel);
+  const done = () => { el.removeEventListener("wheel", cancel); el.removeEventListener("touchstart", cancel); window.removeEventListener("keydown", cancel); };
+  const step = (t: number) => {
+    if (stop) return done();
+    const k = Math.min(1, (t - t0) / dur), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    el.scrollTop = start + dist * e;
+    if (k < 1) requestAnimationFrame(step); else done();
+  };
+  requestAnimationFrame(step);
+}
+
 export function glideIntoView(el: Element | null): void {
   if (!el) return;
   const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bar-h")) || 56;

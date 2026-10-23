@@ -211,6 +211,58 @@ export function shortStubs(n: number, R: Uint8Array, B: Uint8Array, L: number, e
   return k;
 }
 
+/** ช่องที่การ์ดสถิติทั้ง 4 ใบของห้องทดลองนับ ไว้ไฮไลต์บนกระดานตอนกดการ์ด (พี่กันสั่ง 23 ต.ค. 2569 "อยากให้มันกดได้ ... แล้วมันจะไฮไลต์เส้นนั้นที่พูดถึงด้วย")
+    เงื่อนไขเดียวกับตัวนับข้างบนทุกตัว จำนวนจุดจึงเท่าเลขบนการ์ดเสมอ (ชุดทดสอบเทียบ)
+    dead ช่องปลายตัน · len ช่องบนทางเฉลย · ch ทางหลอกยาว ปากทางบนทางเฉลย (j) กับทุกช่องในกิ่งนั้นที่ไม่ย้อนเข้าทางเฉลย · short ช่องของซอกตันสั้นแต่ละซอก */
+export function statMarks(n: number, R: Uint8Array, B: Uint8Array, path: number[], L: number, ex = n >> 1): {
+  dead: number[]; len: number[]; ch: { j: number; cells: number[] }[]; short: number[][];
+} {
+  const s = n >> 1, e = n * (n - 1) + ex, N = n * n;
+  const deg = (c: number) => openNb(c, n, R, B).length + (c === s || c === e ? 1 : 0);
+  const dead: number[] = [];
+  for (let c = 0; c < N; c++) if (deg(c) === 1) dead.push(c);
+  const on = new Uint8Array(N);
+  for (const c of path) on[c] = 1;
+  const ch: { j: number; cells: number[] }[] = [];
+  for (const c of path) {
+    for (const q of openNb(c, n, R, B)) {
+      if (on[q]) continue;
+      // ทั้งกิ่งที่เดินได้โดยไม่ย้อนเข้าทางเฉลย พร้อมความลึกของแต่ละช่อง (ปากทางลึก 1 แบบ countChoices)
+      const depth = new Map<number, number>([[q, 1]]), qu = [q];
+      let h = 0, deep = 1;
+      while (h < qu.length) {
+        const x = qu[h++];
+        for (const y of openNb(x, n, R, B)) {
+          if (y === c || on[y] || depth.has(y)) continue;
+          const dy = (depth.get(x) as number) + 1;
+          depth.set(y, dy);
+          if (dy > deep) deep = dy;
+          qu.push(y);
+        }
+      }
+      if (deep >= L) ch.push({ j: c, cells: qu });
+    }
+  }
+  const short: number[][] = [];
+  for (let tip = 0; tip < N; tip++) {
+    if (tip === s || tip === e || deg(tip) !== 1) continue;
+    const cells = [tip];
+    let len = 1, prev = -1, cur = tip;
+    while (len < L) {
+      const nx = openNb(cur, n, R, B).filter((q) => q !== prev);
+      if (nx.length !== 1) break;
+      const q = nx[0];
+      if (deg(q) >= 3 || q === s || q === e) break;
+      len++;
+      prev = cur;
+      cur = q;
+      cells.push(q);
+    }
+    if (len < L) short.push(cells);
+  }
+  return { dead, len: path.slice(), ch, short };
+}
+
 /** เก็บกวาดซอกตันสั้น ย้ายไปต่อกับปลายตันของซอกอื่นให้เป็นทางหลอกยาว · เขาวงกตยังสมบูรณ์ */
 export function cleanStubs(n: number, R: Uint8Array, B: Uint8Array, L: number): Op[] {
   const s = n >> 1, e = n * (n - 1) + (n >> 1), ops: Op[] = [];

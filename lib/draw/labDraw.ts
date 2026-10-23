@@ -52,7 +52,11 @@ export function labFinish(s: LabState): void {
   s.R = s.fin.R; s.B = s.fin.B; s.done = true; s.cur = -1; s.wk = []; s.hunt = -1; s.room = null;
 }
 
-export function drawLab(ctx: CanvasRenderingContext2D, W: number, s: LabState, sol: SolRun | null, now: number, pulse = false): void {
+/** ไฮไลต์ของการ์ดสถิติที่กดอยู่ (ห้องทดลอง) · cells ระบายพื้น · dots จุดกลม (ปลายตัน ปากทางหลอก) · สีตามแถบสีของการ์ดใบนั้น
+    ทางหลอกยาวส่งมากิ่งละชิ้น กิ่งละสี · dot สีจุดถ้าไม่ใช่สีเดียวกับพื้น · alpha ความทึบของพื้น (ค่าตั้งต้น 0.38 ไว้กับสีแถบการ์ดที่เข้ม) */
+export type LabMark = { cells: number[]; dots: number[]; color: string; dot?: string; alpha?: number };
+
+export function drawLab(ctx: CanvasRenderingContext2D, W: number, s: LabState, sol: SolRun | null, now: number, pulse = false, marks: LabMark[] = []): void {
   const n = s.n, { pad, cs } = geom(W, n), N = n * n, cx = (c: number) => pad + (c % n) * cs, cy = (c: number) => pad + ((c / n) | 0) * cs;
   const C = { paper: tok("--surface"), ink: tok("--ink"), visit: tok("--visit"), front: tok("--front"), cur: tok("--cur"), path: tok("--path") };
   ctx.fillStyle = C.paper;
@@ -82,6 +86,21 @@ export function drawLab(ctx: CanvasRenderingContext2D, W: number, s: LabState, s
       ctx.restore();
     }
     if (s.cur >= 0) { ctx.fillStyle = C.cur; ctx.fillRect(cx(s.cur) + cs * 0.15, cy(s.cur) + cs * 0.15, cs * 0.7, cs * 0.7); }
+  }
+  if (s.done && marks.length) {
+    ctx.save();
+    // พื้นทุกชิ้นก่อน แล้วค่อยจุด จุดจะได้ไม่โดนพื้นของกิ่งถัดไปทับ
+    for (const mark of marks) {
+      ctx.fillStyle = mark.color;
+      ctx.globalAlpha = mark.alpha ?? 0.38;
+      for (const c of mark.cells) ctx.fillRect(cx(c), cy(c), cs + 0.5, cs + 0.5);
+    }
+    ctx.globalAlpha = 1;
+    for (const mark of marks) {
+      ctx.fillStyle = mark.dot ?? mark.color;
+      for (const c of mark.dots) { ctx.beginPath(); ctx.arc(cx(c) + cs / 2, cy(c) + cs / 2, Math.max(2.5, cs * 0.26), 0, Math.PI * 2); ctx.fill(); }
+    }
+    ctx.restore();
   }
   if (s.done && sol && sol.n === n) paintSol(ctx, sol, pad, cs, pad + n * cs, now);
   // กำแพงสีเดียวกับกระดานเกม น้ำเงินเข้ม ธีมมืดฟ้าสว่าง (พี่กันทัก "หน้าทดลอง สีเส้นยังดำอยู่เลย")

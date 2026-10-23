@@ -234,6 +234,8 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 .mz-mobile .playpage .flagrow { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .mz-mobile .playpage .msetbtn[hidden] { display: inline-flex !important; }
 .mz-mobile .playpage .fbtn { min-height: 48px; padding-inline: 4px; gap: 5px; font-size: 14.5px; }
+/* ภาษาอังกฤษ จอ 375 ปุ่ม "To flag" ล้นขอบปุ่ม 2 จุด · ช่องไฟระหว่างไอคอนกับคำ 5 เป็น 3 (รายการงาน 23 ต.ค. 2569 ข้อ 10) */
+.mz-mobile[data-lang="en"] .playpage .fbtn { gap: 3px; }
 .mz-mobile .pg-set .mhelp[hidden] { display: flex !important; flex-direction: column; gap: 8px; }
 .mz-mobile .pg-set .mhelp .keyhelp { gap: 8px 14px; font-size: 14px; }
 
@@ -365,6 +367,9 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 .mz-mobile .wrap .histsum .stat { padding: 6px 7px; border-left-width: 3px; }
 .mz-mobile .wrap .histsum .stat::after { width: 44px; height: 44px; right: -16px; top: -16px; }
 .mz-mobile .histsum .stat .k { font-size: 10.5px; line-height: 1.35; }
+/* ภาษาอังกฤษ การ์ดสี่ใบแถวเดียวป้ายกว้าง 77 "Avg wrong turns" ต้องการ 87 ตกบรรทัด การ์ดทั้งแถวสูงขึ้น · ขอบใน 7 เป็น 4 บีบช่องไฟป้ายอีกนิด (ข้อ 10 · 23 ต.ค. 2569) */
+.mz-mobile[data-lang="en"] .wrap .histsum .stat { padding-inline: 4px; }
+.mz-mobile[data-lang="en"] .histsum .stat .k { letter-spacing: -0.1em; }
 .mz-mobile .histsum .stat .v { font-size: 17px; line-height: 1.25; }
 .mz-mobile .histsum .u { font-size: 10.5px; }
 /* เวลากับก้าวชิดวงกต (พี่กันสั่ง 21 ต.ค. 2569 "ลดระยะห่าง ชิดกว่านี้") ระยะระหว่างก้อนในหน้าเล่นเกมจาก 14 เหลือ 6 · ที่ได้คืนให้กระดาน (--mz-rest ลด 16) */
@@ -372,6 +377,8 @@ html.mz-mobile, .mz-mobile body { overflow-x: clip; }
 
 /* วิธีเล่นแบบมือถือในแผ่นตั้งค่าด่าน กระชับ */
 .mz-mobile .pg-set .mhelp .keyhelp { grid-template-columns: 4.6em 1fr; gap: 6px 10px; font-size: 13.5px; line-height: 1.45; }
+/* ภาษาอังกฤษ "Backtrack" ยาวกว่าช่อง 4.6em ล้น 4 จุด · ช่องหัวข้อกว้าง 5em (ข้อ 10 · 23 ต.ค. 2569) */
+.mz-mobile[data-lang="en"] .pg-set .mhelp .keyhelp { grid-template-columns: 5em 1fr; }
 
 /* ป้ายที่มาของเกม (พี่กันทัก 21 ต.ค. 2569 "ด่านใหม่คืออะไร เอาไปไว้จุดอื่น ไม่ให้มันอยู่ตัวเดียว 1 แถว")
    ด่านใหม่คือแบบปกติ ไม่ต้องขึ้นป้าย · เกมที่เล่นด่านเดิมซ้ำขึ้นป้ายสั้น "เล่นซ้ำ" ในแถววันที่ */

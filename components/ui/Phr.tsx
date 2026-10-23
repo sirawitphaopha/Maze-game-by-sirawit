@@ -11,14 +11,28 @@ import { toEn, useLang } from "@/lib/lang";
 export default function Phr({ children }: { children: string }) {
   const lang = useLang();
   if (lang === "en") return <>{toEn(children)}</>;
-  const parts = children.split(" ").filter(Boolean);
+  // ข้อความในวงเล็บรวมเป็นก้อนเดียว (pg) ห้ามหั่นกลางวงเล็บเสมอ แม้ในคำอธิบายที่กระจายแบบไทยซึ่งปล่อยวลีอื่นขึ้นบรรทัดตามคำ
+  // (พี่กันสั่ง 23 ต.ค. 2569 "การกระจายแบบไทย" · เดิมสั่งไว้ว่าวงเล็บระดับไม่ถูกหั่นกลาง · app/globals.css)
+  // วงเล็บที่ยาวกว่า 32 ตัวเป็นประโยคย่อย ปล่อยขึ้นบรรทัดได้ ไม่งั้นล้นกล่องแคบ (Kruskal "(จำกลุ่มด้วย union-find แปลว่าระบบจับกลุ่ม)" ล้นที่จอ 1366 × 768)
+  const SHORT = 32;
+  const words = children.split(" ").filter(Boolean);
+  const parts: { t: string; g: boolean }[] = [];
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].startsWith("(") && !words[i].endsWith(")")) {
+      let j = i;
+      while (j < words.length - 1 && !words[j].endsWith(")")) j++;
+      const t = words.slice(i, j + 1).join(" ");
+      if (t.length <= SHORT) { parts.push({ t, g: true }); i = j; }
+      else parts.push({ t: words[i], g: false });
+    } else parts.push({ t: words[i], g: words[i].startsWith("(") && words[i].length <= SHORT });
+  }
   return (
     <>
       {parts.map((p, i) => (
         <Fragment key={i}>
           {i > 0 && " "}
           {/* data-notr ตัวแปลไม่แปลทีละวลีตอนสลับเป็นอังกฤษ รอ Phr วาดใหม่ทั้งประโยค (เดิมคำละวลีไปรกรายการคำที่ขาด docs/BUGHUNT-2026-10-21.md ข้อ 31) */}
-          <span className="ph" data-notr="">{p}</span>
+          <span className={p.g ? "ph pg" : "ph"} data-notr="">{p.t}</span>
         </Fragment>
       ))}
     </>

@@ -126,6 +126,39 @@ export default function GameView() {
   /** ยังไม่กดเริ่มเกม และยังไม่เริ่มเดิน = ห้ามเล่น ทั้งมือถือและจอคอม (จอคอมเพิ่ม 22 ต.ค. 2569 พี่กันสั่ง "เพิ่มปุ่มเริ่มที่เดสท็อปด้วย") */
   const locked = useCallback(() => !armedRef.current && G.current?.status === "ready", []);
 
+  /* จอคอม แถวล่างคอลัมน์ซ้าย (ปุ่มธง · วิธีเล่น) ตรงกับแถวล่างแผงขวา (ปุ่มด่านใหม่ · วิธีสร้างด่าน) ทุกขนาดจอ
+     (พี่กันสั่ง 23 ต.ค. 2569 "เอาให้ตรงกัน" เดิมแถวปุ่มธงต่ำกว่าแถวปุ่มด่านใหม่ 23 จุด แถววิธีเล่นต่ำกว่า 12)
+     แผงขวากระจายที่ว่างส่วนเกินทุกช่องเท่ากัน ตำแหน่งแถวล่างเลื่อนตามความสูงจอ CSS อย่างเดียวตามไม่ได้
+     จึงวัดแผงขวาแล้วส่งระยะให้คอลัมน์ซ้ายเป็นตัวแปร --al-* (app/globals.css) · แผงขวาไม่แตะ · มือถือไม่ใช้ */
+  const ctrlBox = useRef<HTMLDivElement | null>(null);
+  const setBox = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const ctrl = ctrlBox.current, set = setBox.current;
+    if (!ctrl || !set) return;
+    const mq = window.matchMedia("(min-width: 1000px) and (min-height: 560px)");
+    const VARS = ["--al-flag-h", "--al-gap", "--al-help-h", "--al-pb", "--al-rest"];
+    const align = () => {
+      const row = set.querySelector<HTMLElement>(":scope > .row"), about = set.querySelector<HTMLElement>(":scope > .about");
+      if (!mq.matches || !row || !about) { VARS.forEach((v) => ctrl.style.removeProperty(v)); return; }
+      const c = ctrl.getBoundingClientRect(), r = row.getBoundingClientRect(), a = about.getBoundingClientRect();
+      const gap = Math.max(4, a.top - r.bottom), pb = Math.max(0, c.bottom - a.bottom);
+      ctrl.style.setProperty("--al-flag-h", `${r.height}px`);
+      ctrl.style.setProperty("--al-gap", `${gap}px`);
+      ctrl.style.setProperty("--al-help-h", `${a.height}px`);
+      ctrl.style.setProperty("--al-pb", `${pb}px`);
+      // ที่ต้องเว้นให้แถวล่างทั้งหมด ใช้คิดขนาดปุ่มลูกศรไม่ให้ดันจนต้องเลื่อน (ช่องไฟปุ่มลูกศรกับแถวปุ่มธง 10 · เผื่อ 4)
+      ctrl.style.setProperty("--al-rest", `${r.height + gap + a.height + pb + 14}px`);
+    };
+    const ro = new ResizeObserver(align);
+    ro.observe(ctrl);
+    ro.observe(set);
+    for (const el of Array.from(set.children)) ro.observe(el);
+    mq.addEventListener("change", align);
+    document.fonts?.ready.then(align).catch(() => {});
+    align();
+    return () => { ro.disconnect(); mq.removeEventListener("change", align); };
+  }, []);
+
   const sync = useCallback(() => {
     setVer((v) => v + 1);
     board.current?.draw();
@@ -599,7 +632,7 @@ export default function GameView() {
             )}
           </div>
         </section>
-        <div className="pg-ctrl">
+        <div className="pg-ctrl" ref={ctrlBox}>
           {over && win && game && (
             <div id="wincard-anchor">
               <ResultCard
@@ -635,9 +668,10 @@ export default function GameView() {
                 <button type="button" className={`btn fbtn flagbtn${game && game.flag >= 0 ? " flagged" : ""}`} onClick={doFlag} aria-keyshortcuts="F" disabled={lockedNow}><span className="flagico" aria-hidden="true" />ปักธง<kbd className="kc" aria-hidden="true">F</kbd>{flagPulse > 0 && <span key={flagPulse} className="fring" aria-hidden="true" />}</button>
                 {/* ก่อนกดเริ่มเกม ปุ่มปักธงกับกลับไปที่ธงกดไม่ได้ แบบเดียวกับปุ่มพัก (พี่กันสั่ง 22 ต.ค. 2569 "ยังไม่เริ่มเกม ปุ่มปักธง และกดกลับธง ควรกดไม่ได้") */}
                 <button type="button" className="btn fbtn" onClick={doBack} aria-keyshortcuts="R" disabled={lockedNow}><Icon name="undo" size={16} /><span className="lfull">กลับไปที่ธง</span><span className="lshort" hidden>กลับธง</span><kbd className="kc" aria-hidden="true">R</kbd></button>
-                {/* พักได้ตั้งแต่กดเริ่มเกม (ก่อนก้าวแรกก็พักได้ ม่านพักปิดวงกต) · ปุ่มลัดสเปซบาร์ (เดิม Backspace พี่กันสั่งเอาออก 22 ต.ค. 2569) */}
+                {/* พักได้ตั้งแต่กดเริ่มเกม (ก่อนก้าวแรกก็พักได้ ม่านพักปิดวงกต) · ปุ่มลัดสเปซบาร์ (เดิม Backspace พี่กันสั่งเอาออก 22 ต.ค. 2569)
+                    ตอนพักอยู่ จอคอมคอลัมน์แคบใช้คำสั้น "เล่น" (pfull pshort · app/globals.css) "เล่นต่อ" กับป้าย Space ยาวเกินปุ่ม 99 จุด · มือถือยังเป็น "เล่นต่อ" */}
                 <button type="button" className="btn fbtn" aria-pressed={held} aria-keyshortcuts="Space" onClick={() => setHold(!held)} disabled={!held && snap.status !== "play" && !(snap.status === "ready" && armed)}>
-                  <Icon name={held ? "play" : "pause"} size={16} />{held ? "เล่นต่อ" : <><span className="lfull">พักเกม</span><span className="lshort" hidden>พัก</span></>}<kbd className="kc" aria-hidden="true">Space</kbd>
+                  <Icon name={held ? "play" : "pause"} size={16} />{held ? <><span className="pfull">เล่นต่อ</span><span className="pshort" hidden>เล่น</span></> : <><span className="lfull">พักเกม</span><span className="lshort" hidden>พัก</span></>}<kbd className="kc" aria-hidden="true">Space</kbd>
                 </button>
                 {/* ปุ่มตั้งค่า มือถือเท่านั้น อยู่แถวเดียวกับปุ่มธง กดแล้วแผ่นตั้งค่าด่านเด้งขึ้นจากขอบล่าง ข้างในมีวิธีเล่นด้วย
                     (พี่กันสั่ง 21 ต.ค. 2569 "ปุ่มตั้งค่าวิธีเล่น เอาเข้าไปในแท็บ ตั้งค่าด่าน เลย และเอาปุ่มนี้ อยู่แถวเดียวกันกับปุ่มธง") · hidden ไว้ จอคอมไม่เห็น */}
@@ -646,10 +680,12 @@ export default function GameView() {
               {/* คำอธิบายปุ่มครบทุกปุ่มของฝั่งนี้ ชื่อปุ่มกับแป้นลัดอยู่คอลัมน์ซ้าย (พี่กันสั่ง 21 ต.ค. 2569 "เขียนคำอธิบายปุ่มให้ครบ" เดิมบอกแค่การเดิน) */}
               {/* วิธีเล่นเป็นปุ่ม กดแล้วขึ้นหน้าต่างเด้ง (พี่กันสั่ง 22 ต.ค. 2569 "ไปย่อให้มันเป็นเปิดปิดได้" แล้วเปลี่ยนเป็น "ไม่เอาแบบนี้ เปลี่ยน เป็นกดแล้วเป็น popup แสดง")
                   ปุ่มลูกศรไม่หดอีก · กำลังเล่นอยู่ เปิดแล้วพักเวลาให้ · ปิดด้วยปุ่มกากบาท แตะพื้นหลัง หรือ Esc · มือถือซ่อน (วิธีเล่นอยู่ในแผ่นตั้งค่าด่าน) */}
-              {/* ที่ว่างข้างปุ่ม บอกวิธีเดินสั้น ๆ บรรทัดเดียว ปุ่มชื่อวิธีเล่นทั้งหมด (พี่กันสั่ง 22 ต.ค. 2569 "ที่มันเหลือ บอกวิธีเล่นคร่าวๆในบรรทัดเดียว บอกวิธีเคลื่อนไหว" · "เปลี่ยนเป็นวิธีเล่นทั้งหมด") */}
+              {/* ที่ว่างข้างปุ่ม บอกวิธีเดินสั้น ๆ บรรทัดเดียว ปุ่มชื่อวิธีเล่นทั้งหมด (พี่กันสั่ง 22 ต.ค. 2569 "ที่มันเหลือ บอกวิธีเล่นคร่าวๆในบรรทัดเดียว บอกวิธีเคลื่อนไหว" · "เปลี่ยนเป็นวิธีเล่นทั้งหมด")
+                  ย่อเป็น "วิธีเล่น" กับคำแนะนำสั้น ทุกขนาดจอ (พี่กันสั่ง 23 ต.ค. 2569 "ย่อเลย เพราะจุดนี้เราแค่บอกคร่าวๆ ยังไงกดดูเต็มก็เห็นอยู่แล้ว")
+                  จอ 1366 × 768 คอลัมน์ 313 คำเดิมยาว 255 มีที่ 182 ถูกตัด · คำใหม่ 207 มีที่ 220 · ใส่ / คั่นลูกศรกับ W A S D (พี่กันสั่ง "ใส่ / ได้ไหม ... เพราะมันใช้ได้ทั้งลูกศรและ wasd") */}
               <div className="helprow">
-                <button type="button" className="helpbtn" aria-haspopup="dialog" onClick={() => { if (snap.status === "play" && !held) setHold(true); setHelpPop(true); }}><Icon name="list" size={14} />วิธีเล่นทั้งหมด</button>
-                <span className="helphint">เดินด้วยปุ่มลูกศร หรือ W A S D หรือลากบนวงกต</span>
+                <button type="button" className="helpbtn" aria-haspopup="dialog" onClick={() => { if (snap.status === "play" && !held) setHold(true); setHelpPop(true); }}><Icon name="list" size={14} />วิธีเล่น</button>
+                <span className="helphint">ใช้ปุ่มลูกศร/ W A S D หรือลากบนวงกต</span>
               </div>
               {/* ยอมแพ้แล้ว คำอธิบายเฉลยขึ้นแทนที่ปุ่มลูกศร (ใช้เดินไม่ได้แล้ว) มือถือเท่านั้น · ไม่แทรกบรรทัดเหนือวงกตแล้วดันจอลง
                   (พี่กันสั่ง 22 ต.ค. 2569 "ห้ามมีอักษรอะไร ขึ้นที่หน้าเล่นเกม ที่มันทำให้เว็บเลื่อนจากเดิม") · hidden ไว้ จอคอมเห็นในบรรทัดสถานะเหมือนเดิม */}
@@ -658,7 +694,7 @@ export default function GameView() {
           )}
         </div>
 
-        <section className="panel pg-set" aria-label="ตั้งค่าเกม">
+        <section className="panel pg-set" ref={setBox} aria-label="ตั้งค่าเกม">
           <div className="msheet-top" hidden><b>ตั้งค่าด่าน</b><button type="button" className="iconbtn" aria-label="ปิดแผ่นนี้" onClick={() => setSheet(null)}><Icon name="x" size={16} /></button></div>
           <h3 className="psech">ตั้งค่าด่าน</h3>
           {/* สถิติดีสุดย้ายมาไว้ในแผ่นนี้บนมือถือ (หน้าเล่นเกมมีแค่เวลากับก้าว พี่กันสั่ง "มีแค่ปุ่ม วงกต ก้าว เวลา จบ") */}
@@ -797,7 +833,7 @@ function MinLenSlider({ prefs, onCommit }: { prefs: PlayPrefs; onCommit: (v: num
       <CommitRange id="gMinL" min={3} max={LV_MAXL[prefs.level]} step={1} value={v} onInput={setV} onCommit={(nv) => { if (nv !== prefs.minLen) onCommit(nv); }} />
       {/* ตัดบรรทัดตามประโยค วงเล็บระดับไม่ถูกหั่นกลาง (พี่กันสั่ง 21 ต.ค. 2569 "ไปปรับบรรทัดดี ๆ")
           · วงเล็บย่อจาก ง่ายสุด 6 กลางสุด 9 ... ให้บรรทัดสองพอดี เหลือสองบรรทัด (พี่กันสั่ง 22 ต.ค. 2569 "ส่วนอื่นๆก็บีบบรรทัดได้") */}
-      <p className="foot" style={{ marginTop: 4 }}><Phr>{"ทางตันที่สั้นกว่านี้จะถูกเก็บกวาดไปต่อเป็นทางหลอกยาว"}</Phr><br /><Phr>{"ค่าเริ่มและค่าสูงสุดขยายตามระดับ"}</Phr> <span className="ph">(ง่าย 6 กลาง 9 ยาก 14 โหด 20)</span></p>
+      <p className="foot sent" style={{ marginTop: 4 }}><Phr>{"ทางตันที่สั้นกว่านี้จะถูกเก็บกวาดไปต่อเป็นทางหลอกยาว"}</Phr><br /><Phr>{"ค่าเริ่มและค่าสูงสุดขยายตามระดับ"}</Phr> <span className="ph pg">(ง่าย 6 กลาง 9 ยาก 14 โหด 20)</span></p>
     </div>
   );
 }

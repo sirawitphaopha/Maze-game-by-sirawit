@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import CommitRange from "@/components/ui/CommitRange";
 import Phr from "@/components/ui/Phr";
 import Icon from "@/components/ui/Icon";
+import JumpButtons from "@/components/ui/JumpButtons";
 import GroupLabel from "./GroupInfo";
 import { ALGOS, DEF, GROUPS, NOTES, PDEF, generate, type AlgoId, type GroupId, type Params } from "@/lib/maze/generators";
-import { braidOps, build, cleanStubs, countChoices, countLoops, deadEnds, shortStubs, solve, type Op } from "@/lib/maze/grid";
+import { braidOps, build, cleanStubs, countChoices, countLoops, deadEnds, shortStubs, solve, statMarks, type Op } from "@/lib/maze/grid";
 import { solRun, type SolRun } from "@/lib/game/solAnim";
-import { drawLab, labFinish, labStep, type LabState } from "@/lib/draw/labDraw";
-import { fitCanvas, reducedMotion, solFinished } from "@/lib/draw/paint";
+import { drawLab, labFinish, labStep, type LabMark, type LabState } from "@/lib/draw/labDraw";
+import { fitCanvas, reducedMotion, solFinished, tok } from "@/lib/draw/paint";
 import { th } from "@/lib/local";
 import { labMem, type LabPrefs } from "@/lib/session";
 import { glideIntoView } from "@/lib/glide";
@@ -51,6 +52,17 @@ const LEG: [string, (a: AlgoId) => boolean, React.ReactNode][] = [
 type Stats = { dead: number; len: number; ch: number; short: number };
 type Msg = { pre: string; bold: string; post: string };
 type CmpRow = { dead: number; len: number; ch: number; sh: number };
+type Kind = "dead" | "len" | "ch" | "short";
+
+/* การ์ดสถิติ 4 ใบ กดแล้วไฮไลต์บนวงกตว่าตัวเลขนับจากตรงไหน · ชี้แล้วขึ้นป๊อปบอกความหมาย
+   (พี่กันสั่ง 23 ต.ค. 2569 "อยากให้มันกดได้ดีไหม แล้วมันจะทั้งไฮไลต์เส้นนั้นที่พูดถึงด้วย ลองทำมาก่อน" · "เอาแบบเอาเมาส์ไปชี้แล้วขึ้นความหมายเป็น popup ด้วย")
+   ความหมายเขียนจากตัวนับจริงใน lib/maze/grid.ts (deadEnds · solve · countChoices · shortStubs) · สีไฮไลต์ตามแถบสีของการ์ดใบนั้น ยกเว้นทางหลอกยาวที่กิ่งละสี · L = ทางหลอกต้องยาวอย่างน้อย */
+const CARD: { k: Kind; label: string; bar: string; tip: (L: number) => string[]; see: string }[] = [
+  { k: "dead", label: "ทางตัน (dead end)", bar: "--c1-bar", tip: () => ["ช่องที่เดินเข้าไปแล้วไปต่อไม่ได้ ต้องหันหลังกลับ", "นับทุกปลายตันทั้งกระดาน ทั้งซอกสั้นและซอกยาว"], see: "กดการ์ด ขึ้นจุดตรงปลายตันทุกจุด" },
+  { k: "len", label: "เส้นทางเฉลยยาว (ช่อง)", bar: "--c2-bar", tip: () => ["จำนวนช่องที่ต้องเดิน ถ้าเดินทางที่สั้นที่สุดจากทางเข้าไปทางออก", "ยิ่งมาก ยิ่งต้องเดินอ้อมไกล"], see: "กดการ์ด ระบายสีทางเฉลยทั้งเส้น" },
+  { k: "ch", label: "ทางหลอกยาวบนเส้นทางเฉลย", bar: "--c3-bar", tip: (L) => [`จุดบนทางเฉลยที่มีทางแยกออกไป แล้วทางแยกนั้นลึกตั้งแต่ ${L} ช่องขึ้นไป`, "เลี้ยวเข้าไปแล้วต้องเดินลึกกว่าจะรู้ว่าผิด คือทางเลือกที่หลอกได้จริง", "ความลึกที่ใช้แบ่ง ปรับได้ที่แถบทางหลอกต้องยาวอย่างน้อย ในหัวข้อ 4"], see: "กดการ์ด ขึ้นจุดตรงปากทางบนทางเฉลย และระบายทั้งกิ่งที่หลอก กิ่งละสี" },
+  { k: "short", label: "ทางตันสั้นที่มองแวบเดียวก็รู้", bar: "--c4-bar", tip: (L) => [`ซอกตันที่ลึกไม่ถึง ${L} ช่อง`, "มองแวบเดียวก็รู้ว่าตัน ไม่หลอกใคร ยิ่งมากยิ่งรกตา"], see: "กดการ์ด ระบายสีซอกตันสั้นทุกซอก" },
+];
 
 const maxMinL = (n: number) => Math.max(6, Math.round(n / 2));
 
@@ -66,6 +78,43 @@ export default function LabView() {
   const solRaf = useRef(0);
   const [showSol, setShowSol] = useState(false);
   const [stats, setStats] = useState<Stats>({ dead: 0, len: 0, ch: 0, short: 0 });
+  // การ์ดที่กดอยู่ กับช่องที่การ์ดแต่ละใบนับ (คิดตอนสร้างเขาวงกต ใช้เงื่อนไขเดียวกับตัวนับ)
+  const [mark, setMark] = useState<Kind | null>(null);
+  // กำลังสร้างทีละขั้นอยู่ ไฮไลต์ยังวาดไม่ได้เพราะกำแพงยังไม่ครบ การ์ดจางกดไม่ได้จนสร้างเสร็จ (พี่กันเสนอ 23 ต.ค. 2569 "การ์ดควรจะจาง ๆ กดไม่ได้ไหม")
+  const [building, setBuilding] = useState(false);
+  // แผงซ้ายขวาที่เลื่อนในตัวเองบนจอคอม ให้ปุ่มขึ้นบนสุดลงล่างสุดจับ (components/ui/JumpButtons.tsx)
+  const panelBox = useRef<HTMLElement>(null);
+  const sideBox = useRef<HTMLElement>(null);
+  const markRef = useRef<Kind | null>(null);
+  const marks = useRef<ReturnType<typeof statMarks> | null>(null);
+  const [tip, setTip] = useState<{ k: Kind; x: number; y: number } | null>(null);
+  // ป๊อปวางซ้ายของการ์ด (แผงขวาชิดขอบจอ) · ปิดตอนเลื่อน กด Esc หรือแตะที่อื่น แบบเดียวกับป๊อปชื่อกลุ่ม (GroupInfo.tsx)
+  // y คือขอบบนของการ์ด แล้ววัดความสูงจริงของป๊อปก่อนวาดลงจอ ดันขึ้นถ้าล้นขอบล่าง (ป๊อปใบที่ 3 สูง 251 จุด จอเตี้ย 577 ล้นจอ 13 จุด)
+  const tipBox = useRef<HTMLSpanElement>(null);
+  const showTip = (k: Kind, el: HTMLElement) => {
+    const r = el.getBoundingClientRect(), W = 300;
+    setTip({ k, x: Math.max(8, r.left - W - 12), y: r.top });
+  };
+  // วัดซ้ำทุกครั้งที่ป๊อปเปลี่ยนขนาด (ภาษาอังกฤษตัวแปลเปลี่ยนชื่อการ์ดหลังวาดรอบแรก · คำท้ายเปลี่ยนตอนสร้างเสร็จ)
+  useLayoutEffect(() => {
+    const el = tipBox.current;
+    if (!el || !tip) return;
+    const place = () => { el.style.top = `${Math.max(8, Math.min(tip.y, innerHeight - el.offsetHeight - 8))}px`; };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tip]);
+  useEffect(() => {
+    if (!tip) return;
+    const close = () => setTip(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const onDown = (e: PointerEvent) => { if (!(e.target instanceof Element) || !e.target.closest(".stats .stat, .stip")) close(); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("scroll", close, true);
+    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("pointerdown", onDown); window.removeEventListener("scroll", close, true); };
+  }, [tip]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [cmp, setCmp] = useState<Record<string, CmpRow> | null>(null);
   const [cmpSub, setCmpSub] = useState("กำลังคำนวณ");
@@ -79,7 +128,23 @@ export default function LabView() {
     if (!c || !s) return;
     const ctx = c.getContext("2d");
     if (!ctx) return;
-    drawLab(ctx, fitCanvas(c, ctx), s, sol.current, performance.now(), !reducedMotion());
+    const m = marks.current, k = markRef.current;
+    let lm: LabMark[] = [];
+    if (m && k) {
+      const color = tok(CARD.find((x) => x.k === k)?.bar ?? "--accent");
+      if (k === "dead") lm = [{ cells: [], dots: m.dead, color }];
+      else if (k === "len") lm = [{ cells: m.len, dots: [], color }];
+      else if (k === "ch") {
+        // กิ่งละสี จุดปากทางสีเดียวกับกิ่งแต่เข้มกว่า (พี่กันสั่ง 23 ต.ค. 2569 "7 จุดนั้น 7 สีซะสิ แค่นี้ก็แยกได้ละ")
+        // หมุนเฉดทีละมุมทองแบบช่องหลากสีของ Kruskal กิ่งที่อยู่ติดกันบนทางเฉลยจึงได้สีห่างกัน · ความสดความสว่างเป็นโทเค็น --mark-* มีธีมมืด
+        const S = tok("--mark-s"), L = tok("--mark-l"), DL = tok("--mark-dot-l");
+        lm = m.ch.map((b, i) => {
+          const h = Math.round((200 + i * 137.508) % 360);
+          return { cells: b.cells, dots: [b.j], color: `hsl(${h} ${S} ${L})`, dot: `hsl(${h} ${S} ${DL})`, alpha: 1 };
+        });
+      } else lm = [{ cells: m.short.flat(), dots: [], color }];
+    }
+    drawLab(ctx, fitCanvas(c, ctx), s, sol.current, performance.now(), !reducedMotion(), lm);
   }, []);
 
   // ลูกศรทางเข้าออกกะพริบขึ้นลง วาดกระดานซ้ำราว 20 ครั้งต่อวินาที เฉพาะตอนเห็นหน้าอยู่ · เครื่องตั้งลดการเคลื่อนไหวไม่วาดซ้ำ
@@ -121,12 +186,14 @@ export default function LabView() {
 
   const finish = useCallback(() => {
     if (st.current) labFinish(st.current);
+    setBuilding(false);
     draw();
   }, [draw]);
 
   const run = useCallback(() => {
     const s = st.current;
     if (!s) return;
+    setBuilding(true);
     const per = Math.max(1, Math.ceil(s.ops.length / (SPEED_SEC[pref.current.speed] * 60)));
     const tick = () => {
       for (let k = 0; k < per && s.i < s.ops.length; k++) labStep(s, s.ops[s.i++]);
@@ -161,6 +228,9 @@ export default function LabView() {
       vis: new Uint8Array(N), front: new Uint8Array(N), cur: -1, wk: [], hunt: -1, room: null, par, sz, i: 0, done: false,
     };
     setStats({ dead: deadEnds(n, b.fin.R, b.fin.B, b.ex), len: b.path.length, ch: countChoices(n, b.fin.R, b.fin.B, b.path, L), short: shortStubs(n, b.fin.R, b.fin.B, L, b.ex) });
+    marks.current = statMarks(n, b.fin.R, b.fin.B, b.path, L, b.ex);
+    markRef.current = null;
+    setMark(null);
     const m: Msg[] = [];
     if (tries > 1) m.push({ pre: `สุ่มแล้ว ${th(done)} รอบ${done < tries ? " (หยุดก่อนเพราะวิธีนี้ใช้เวลานาน)" : ""} เส้นทางเฉลยเฉลี่ย ${th(sum / done)} ช่อง เก็บอันที่ยาวสุดไว้ `, bold: th(b.path.length), post: " ช่อง" });
     if (b.moved) m.push({ pre: "เก็บกวาดทางตันสั้นไป ", bold: th(b.moved), post: " จุด โดยย้ายไปต่อเป็นทางหลอกที่ยาวขึ้น" });
@@ -273,7 +343,7 @@ export default function LabView() {
   return (
     <div className="view labpage wide">
       <div className="lab">
-        <section className="panel" aria-label="ตัวควบคุม">
+        <section ref={panelBox} className="panel" aria-label="ตัวควบคุม">
           <div className="psec">
             <h3 className="psech"><span className="num">1</span>วิธีสร้าง</h3>
             <div className="algos">
@@ -298,7 +368,8 @@ export default function LabView() {
             </div>
           </div>
           <div className="psec">
-            <h3 className="psech"><span className="num">2</span>ปรับตามนิสัยของ {name}</h3>
+            {/* ชื่อวิธีห้ามหั่นกลางคำ ยาวเกินแถวให้ลงบรรทัดใหม่ทั้งชื่อ (พี่กันทัก 23 ต.ค. 2569 จุดที่ตกสองบรรทัดแล้วไม่สวย · เดิมตกเป็น Aldous- / Broder) */}
+            <h3 className="psech"><span className="num">2</span><span>ปรับตามนิสัยของ <span className="nw">{name}</span></span></h3>
             {PDEF[a].map((d) => {
               const id = `p-${a}-${d.k}`, v = prefs.PV[a][d.k];
               if (d.t === "select")
@@ -354,6 +425,7 @@ export default function LabView() {
             </div>
             <label className="chk"><input type="checkbox" checked={prefs.farExit} onChange={(e) => { update({ farExit: e.target.checked }); regen(); }} /> ย้ายทางออกไปจุดที่ไกลสุดบนขอบล่าง</label>
           </div>
+          <JumpButtons box={panelBox} />
         </section>
 
         {/* กล่องกระดานมีแต่กระดาน ไม่มีหัว ไม่มีคำอธิบายสี กระดานจึงสูงเกือบเต็มจอ (พี่กันสั่ง "ควรขยายวงกตสิ") */}
@@ -363,7 +435,7 @@ export default function LabView() {
           </div>
         </section>
 
-        <aside className="side" aria-label="เขาวงกตนี้">
+        <aside ref={sideBox} className="side" aria-label="เขาวงกตนี้">
           {/* ปุ่มสร้างใหม่กับดูเฉลยย้ายจากในแผงมาไว้ข้างกระดาน กดได้ตลอดไม่ว่าแผงจะเลื่อนไปถึงไหน */}
           <div className="sidecard">
             <div className="stitle">
@@ -376,12 +448,27 @@ export default function LabView() {
             </div>
             <div className="legend">{LEG.filter((l) => l[1](a)).map((l) => <span key={l[0]}>{l[2]}</span>)}</div>
           </div>
+          {/* การ์ดกดได้ กดแล้วไฮไลต์บนวงกต กดซ้ำเอาออก · ชี้หรือโฟกัสแล้วขึ้นป๊อปความหมาย (ป๊อปแบบเดียวกับชื่อกลุ่มวิธีสร้าง .ginfo) */}
           <div className="stats">
-            <div className="stat"><div className="k">ทางตัน (dead end)</div><div className="v">{th(stats.dead)}</div></div>
-            <div className="stat"><div className="k">เส้นทางเฉลยยาว (ช่อง)</div><div className="v">{th(stats.len)}</div></div>
-            <div className="stat"><div className="k">ทางหลอกยาวบนเส้นทางเฉลย</div><div className="v">{th(stats.ch)}</div></div>
-            <div className="stat"><div className="k">ทางตันสั้นที่มองแวบเดียวก็รู้</div><div className="v">{th(stats.short)}</div></div>
+            {CARD.map((c) => (
+              <button key={c.k} type="button" className="stat" aria-pressed={mark === c.k} aria-disabled={building || undefined} aria-describedby={tip?.k === c.k ? `stip-${c.k}` : undefined}
+                onClick={() => { if (building) return; const v = mark === c.k ? null : c.k; markRef.current = v; setMark(v); draw(); }}
+                onMouseEnter={(e) => showTip(c.k, e.currentTarget)} onMouseLeave={() => setTip(null)} onFocus={(e) => showTip(c.k, e.currentTarget)} onBlur={() => setTip(null)}>
+                <span className="k">{c.label}</span><span className="v">{th(stats[c.k])}</span>
+              </button>
+            ))}
           </div>
+          {tip && (() => {
+            const c = CARD.find((x) => x.k === tip.k) ?? CARD[0];
+            return (
+              <span ref={tipBox} className="ginfo stip" id={`stip-${c.k}`} role="tooltip" style={{ left: tip.x, top: tip.y }}>
+                <b className="gtitle">{c.label}</b>
+                <ul>{c.tip(prefs.minL).map((p) => <li key={p}><Phr>{p}</Phr></li>)}</ul>
+                {/* ตอนกำลังสร้าง บอกเหตุผลที่กดไม่ได้ติดกับการ์ด (สกิล button-feedback) */}
+                <span className="gcap"><Phr>{building ? "กดได้เมื่อสร้างเขาวงกตเสร็จ" : c.see}</Phr></span>
+              </span>
+            );
+          })()}
           {msgs.length > 0 && (
             <p className="pick">{msgs.map((m, i) => <span key={i}>{i > 0 && <br />}{m.pre}<b>{m.bold}</b>{m.post}</span>)}</p>
           )}
@@ -408,6 +495,7 @@ export default function LabView() {
               </ul>
             </details>
           </section>
+          <JumpButtons box={sideBox} />
         </aside>
       </div>
     </div>

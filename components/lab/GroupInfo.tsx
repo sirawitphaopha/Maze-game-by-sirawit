@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ALGOS, GROUPS, generate, type AlgoId, type GroupId } from "@/lib/maze/generators";
 import { build, openNb } from "@/lib/maze/grid";
 
@@ -133,16 +133,29 @@ export default function GroupLabel({ g }: { g: GroupId }) {
     window.addEventListener("scroll", close, true);
     return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("pointerdown", onDown); window.removeEventListener("scroll", close, true); };
   }, [at]);
+  // y คือแนวป้ายชื่อกลุ่ม แล้ววัดความสูงจริงของป๊อปก่อนวาดลงจอ ดันขึ้นถ้าล้นขอบล่าง
+  // (เดิมเดาสูง 380 แต่ของจริง 400 ถึง 460 ภาษาอังกฤษถึง 560 จอสูง 577 ขอบล่างหลุดจอ เจอตอนตรวจภาษาอังกฤษ 23 ต.ค. 2569)
+  const box = useRef<HTMLSpanElement>(null);
   const show = (el: HTMLElement) => {
-    const r = el.getBoundingClientRect(), W = 300, H = 380;
-    setAt({ x: Math.min(r.right + 12, innerWidth - W - 8), y: Math.max(8, Math.min(r.top - 10, innerHeight - H - 8)) });
+    const r = el.getBoundingClientRect(), W = 300;
+    setAt({ x: Math.min(r.right + 12, innerWidth - W - 8), y: r.top - 10 });
   };
+  // วัดซ้ำทุกครั้งที่ป๊อปเปลี่ยนขนาด ภาษาอังกฤษตัวแปลเปลี่ยนข้อความหลังวาดรอบแรก ป๊อปสูงขึ้นทีหลัง
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el || !at) return;
+    const place = () => { el.style.top = `${Math.max(8, Math.min(at.y, innerHeight - el.offsetHeight - 8))}px`; };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [at]);
   return (
     <span className="glabel" tabIndex={0} onMouseEnter={(e) => show(e.currentTarget)} onMouseLeave={() => setAt(null)} onFocus={(e) => show(e.currentTarget)} onBlur={() => setAt(null)} aria-describedby={at ? `ginfo-${g}` : undefined}>
       {GROUPS[g]}
       <span className="ginfoicon" aria-hidden="true">i</span>
       {at && (
-        <span className="ginfo" id={`ginfo-${g}`} role="tooltip" style={{ left: at.x, top: at.y }}>
+        <span ref={box} className="ginfo" id={`ginfo-${g}`} role="tooltip" style={{ left: at.x, top: at.y }}>
           <b className="gtitle">{GROUPS[g]}</b>
           <span className="gmaze"><MiniMaze algo={info.sample} mark={info.mark} /></span>
           <span className="glegend">{info.legend}</span>

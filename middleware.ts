@@ -6,7 +6,28 @@
 //
 // ด่านที่หนึ่ง · ด่านที่สองคือ lib/requireAuth.ts ที่ทุกเส้นทางหลังบ้านเรียกเอง
 import { NextResponse, type NextRequest } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { AUTH_COOKIE, authConfigured, authCookieOpts, authCookieValid, issueAuthCookie, shouldRenew } from "@/lib/auth";
+
+/* ภาษาตามประเทศของคนเปิดเว็บ (พี่กันสั่ง 23 ต.ค. 2569 "ให้เว็บตรวจ ip หน่อย ถ้าเป็นคนไทยหน้าเว็บจะไทย แต่นอกนั้นเป็นอังกฤษ")
+   Cloudflare บอกประเทศจาก IP มาให้ทุกคำขอ (หัวคำขอ cf-ipcountry หรือ request.cf.country) · จดแค่รหัสประเทศสองตัวลงคุกกี้ maze-geo ไม่เก็บ IP
+   สคริปต์หัวเว็บ (app/layout.tsx LANG_BOOT) อ่านคุกกี้นี้ เฉพาะคนที่ยังไม่เคยกดปุ่มเลือกภาษาเอง · ไม่รู้ประเทศ (เครื่องทดสอบ XX) ไม่จด = อังกฤษ (พี่กันสั่ง "เอาอังกฤษเป็นตัวหลัก") */
+const GEO_COOKIE = "maze-geo";
+function visitorCountry(req: NextRequest): string | null {
+  const ok = (c: unknown): c is string => typeof c === "string" && /^[A-Z]{2}$/.test(c) && c !== "XX";
+  const h = req.headers.get("cf-ipcountry");
+  if (ok(h)) return h;
+  try {
+    const c = getCloudflareContext().cf?.country;
+    if (ok(c)) return c;
+  } catch { /* เครื่องทดสอบไม่มีข้อมูลของ Cloudflare */ }
+  return null;
+}
+function withGeo<T extends NextResponse>(req: NextRequest, res: T): T {
+  const c = visitorCountry(req);
+  if (c) res.cookies.set(GEO_COOKIE, c, { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24, secure: req.nextUrl.protocol === "https:" });
+  return res;
+}
 
 export async function middleware(req: NextRequest) {
   if (!authConfigured()) {
@@ -17,13 +38,14 @@ export async function middleware(req: NextRequest) {
   }
 
   const path = req.nextUrl.pathname;
-  if (path === "/login" || path === "/api/auth") return NextResponse.next();
+  if (path === "/login") return withGeo(req, NextResponse.next());
+  if (path === "/api/auth") return NextResponse.next();
 
   const got = req.cookies.get(AUTH_COOKIE);
   if (await authCookieValid(got?.value)) {
     const res = NextResponse.next();
     if (shouldRenew(got?.value)) res.cookies.set(AUTH_COOKIE, await issueAuthCookie(), authCookieOpts());
-    return res;
+    return path.startsWith("/api/") ? res : withGeo(req, res);
   }
 
   if (path.startsWith("/api/")) {

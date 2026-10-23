@@ -37,8 +37,11 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, maxi
 const THEME_BOOT = `try{var t=localStorage.getItem("maze-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}
 try{var d=document.documentElement,m=document.createElement("meta"),dq=matchMedia("(prefers-color-scheme: dark)");m.name="theme-color";document.head.appendChild(m);var u=function(){var v=d.dataset.theme,k=v==="dark"||(v!=="light"&&dq.matches);m.content=k?"#101E26":"#FDFEFE"};u();dq.addEventListener("change",u);new MutationObserver(u).observe(d,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}`;
 
-/* ภาษาที่เคยเลือกไว้ ตั้งก่อนจอวาดเฟรมแรกเหมือนโหมดมืด (lib/lang.ts คีย์ maze-lang) · ไม่เคยเลือก = ไทย */
-const LANG_BOOT = `try{if(localStorage.getItem("maze-lang")==="en"){document.documentElement.dataset.lang="en";document.documentElement.lang="en"}}catch(e){}`;
+/* ภาษาที่เคยเลือกไว้ ตั้งก่อนจอวาดเฟรมแรกเหมือนโหมดมืด (lib/lang.ts คีย์ maze-lang)
+   ไม่เคยกดเลือกเอง ดูประเทศจาก IP ที่ประตูเว็บจดไว้ในคุกกี้ maze-geo (middleware.ts) ไทยเป็นไทย ประเทศอื่นเป็นอังกฤษ
+   (พี่กันสั่ง 23 ต.ค. 2569 "ให้เว็บตรวจ ip หน่อย ถ้าเป็นคนไทยหน้าเว็บจะไทย แต่นอกนั้นเป็นอังกฤษ")
+   ไม่รู้ประเทศ = อังกฤษ (พี่กันสั่ง "เอาอังกฤษ เอาอังกฤษเป็นตัวหลัก") · ภาษาไทยเฉพาะคนที่อยู่ไทยหรือกดเลือกไทยเอง */
+const LANG_BOOT = `try{var d=document.documentElement,l=null;try{l=localStorage.getItem("maze-lang")}catch(e){}if(!l){var g=document.cookie.match(/(?:^|; )maze-geo=([A-Z]{2})/);l=g&&g[1]==="TH"?"th":"en"}if(l==="en"){d.dataset.lang="en";d.lang="en"}}catch(e){}`;
 
 /* ธงมือถือ ใส่คลาส mz-mobile ที่ <html> ตั้งแต่ก่อนจอวาดเฟรมแรก และสลับตามขนาดจอ (กฎทั้งหมดอยู่ใน app/mobile.css)
    🔴 ตัวเลข 759px ต้องตรงกับบล็อก @media ท้าย app/mobile.css

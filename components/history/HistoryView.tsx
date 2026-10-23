@@ -12,6 +12,7 @@ import { fmt, th, scoreTone } from "@/lib/local";
 import { useStore } from "@/lib/store";
 import { skelStore, toggleSkel } from "@/lib/skelDemo";
 import Icon from "@/components/ui/Icon";
+import JumpButtons from "@/components/ui/JumpButtons";
 import MazeThumb from "./MazeThumb";
 
 /* ════════════════════════════════════════════════════════════════════
@@ -260,6 +261,8 @@ export default function HistoryView() {
           <span className="mrow mdate"><span>{whenN(peek.g.played_at)}</span><span>{peek.g.score} คะแนน</span></span>
         </div>
       )}
+      {/* ปุ่มขึ้นบนสุดลงล่างสุดของทั้งหน้า (พี่กันสั่ง 23 ต.ค. 2569 "ปุ่มขึ้นสุดลงสุด ทำที่หน้าประวัติด้วย") */}
+      <JumpButtons />
     </div>
   );
 }

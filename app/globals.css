@@ -15,6 +15,8 @@ body { margin: 0; }
   --paper: #ECF4F6; --surface: #FFFFFF; --ink: #12262E; --muted: #55707A; --line: #D2E2E7;
   --accent: #0A7EA4; --accent-soft: #E0F2F7; --path: #E0367A; --visit: #D6EEF5; --front: #F6C945; --cur: #F6C945; --frontier: #CDBDF5; --fog: #0E2B3D; --wrong: #F8D3DB; --wrong-dot: #B4322F; --player: #FF5E9C; --wall: #0D3B66; --b1: #1D9E75; --b2: #D9901A; --b3: #7F77DD; --b4: #639922;
   --hunt: #BDE3EE; --room: #D9F1E6; --set-s: 65%; --set-l: 80%;
+  /* ทางหลอกยาวกิ่งละสีตอนกดการ์ดในห้องทดลอง (เฉดหมุนในโค้ด components/lab/LabView.tsx) · พื้นกิ่ง --mark-l · จุดปากทาง --mark-dot-l เข้มกว่า */
+  --mark-s: 70%; --mark-l: 80%; --mark-dot-l: 38%;
   /* สีตอนชี้ (เพิ่มใหม่) ลดความสว่างในโทนเดิม ไม่เปลี่ยนเฉดสี */
   --accent-hover: #07617F; --accent-soft-2: #C4E7F1; --press-bg: #A6D9EA; --line-hover: #86C4D7;
   --danger: #B4322F; --danger-soft: #FBE7E6; --danger-line: #E7A9A6;
@@ -46,7 +48,7 @@ body { margin: 0; }
   :root:not([data-theme="light"]) {
     --paper: #0A1418; --surface: #112028; --ink: #E2F0F4; --muted: #8EA8B2; --line: #33606F;
     /* ตัวขุดโหมดมืดสีเหลืองอำพันสว่าง (พี่กันสั่ง 21 ต.ค. 2569 "โหมดมืด ตัวขุดสว่างกว่านี้" เดิม #8C6A14) · ช่องรอขุดม่วงสว่าง #8B74E0 เดิม #4E3F86 ("ขอม่วงสว่างกว่านี้") · ช่องหลากสีของ Kruskal กับ Eller สว่างขึ้น ("ตัวหลากสีอันนี้ ขอสว่างกว่านี้") */
-    --accent: #4CC3E0; --accent-soft: #10323E; --path: #FF5E9C; --visit: #164A5E; --front: #8C6A14; --cur: #F2BE3E; --frontier: #8B74E0; --fog: #04070B; --wrong: #8F2339; --wrong-dot: #FF3B4A; --player: #FF5E9C; --wall: #7DD3EC; --b1: #5DCAA5; --b2: #EF9F27; --b3: #AFA9EC; --b4: #97C459; --hunt: #24708A; --room: #173A30; --set-s: 58%; --set-l: 44%;
+    --accent: #4CC3E0; --accent-soft: #10323E; --path: #FF5E9C; --visit: #164A5E; --front: #8C6A14; --cur: #F2BE3E; --frontier: #8B74E0; --fog: #04070B; --wrong: #8F2339; --wrong-dot: #FF3B4A; --player: #FF5E9C; --wall: #7DD3EC; --b1: #5DCAA5; --b2: #EF9F27; --b3: #AFA9EC; --b4: #97C459; --hunt: #24708A; --room: #173A30; --set-s: 58%; --set-l: 44%; --mark-s: 60%; --mark-l: 38%; --mark-dot-l: 68%;
     --accent-hover: #7DD6EA; --accent-soft-2: #174759; --press-bg: #1E6278; --line-hover: #4A8DA3;
     --danger: #FF8E86; --danger-soft: #3A1C21; --danger-line: #7A3A40;
     --pend-bg: #3A2C10; --pend-ink: #F2C877; --pend-line: #6B5420;
@@ -65,7 +67,7 @@ body { margin: 0; }
 :root[data-theme="dark"] {
   --paper: #0A1418; --surface: #112028; --ink: #E2F0F4; --muted: #8EA8B2; --line: #33606F;
   /* ตัวขุดโหมดมืดสีเหลืองอำพันสว่าง (พี่กันสั่ง 21 ต.ค. 2569 "โหมดมืด ตัวขุดสว่างกว่านี้" เดิม #8C6A14) · ช่องรอขุดม่วงสว่าง #8B74E0 เดิม #4E3F86 ("ขอม่วงสว่างกว่านี้") · ช่องหลากสีของ Kruskal กับ Eller สว่างขึ้น ("ตัวหลากสีอันนี้ ขอสว่างกว่านี้") */
-  --accent: #4CC3E0; --accent-soft: #10323E; --path: #FF5E9C; --visit: #164A5E; --front: #8C6A14; --cur: #F2BE3E; --frontier: #8B74E0; --fog: #04070B; --wrong: #8F2339; --wrong-dot: #FF3B4A; --player: #FF5E9C; --wall: #7DD3EC; --b1: #5DCAA5; --b2: #EF9F27; --b3: #AFA9EC; --b4: #97C459; --hunt: #24708A; --room: #173A30; --set-s: 58%; --set-l: 44%;
+  --accent: #4CC3E0; --accent-soft: #10323E; --path: #FF5E9C; --visit: #164A5E; --front: #8C6A14; --cur: #F2BE3E; --frontier: #8B74E0; --fog: #04070B; --wrong: #8F2339; --wrong-dot: #FF3B4A; --player: #FF5E9C; --wall: #7DD3EC; --b1: #5DCAA5; --b2: #EF9F27; --b3: #AFA9EC; --b4: #97C459; --hunt: #24708A; --room: #173A30; --set-s: 58%; --set-l: 44%; --mark-s: 60%; --mark-l: 38%; --mark-dot-l: 68%;
   --accent-hover: #7DD6EA; --accent-soft-2: #174759; --press-bg: #1E6278; --line-hover: #4A8DA3;
   --danger: #FF8E86; --danger-soft: #3A1C21; --danger-line: #7A3A40;
   --pend-bg: #3A2C10; --pend-ink: #F2C877; --pend-line: #6B5420;
@@ -186,6 +188,15 @@ select:hover { border-color: var(--line-hover); }
 .sw.sets { background: conic-gradient(#F2A98B 0 25%, #9BD6B4 0 50%, #9DB8F2 0 75%, #D8A6E6 0); }
 .stat { background: var(--paper); border-radius: 8px; padding: 10px 12px; min-width: 0; }
 .stat .k { font-size: 12px; color: var(--muted); line-height: 1.35; }
+/* การ์ดสถิติห้องทดลองเป็นปุ่ม (กดแล้วไฮไลต์บนวงกต · 23 ต.ค. 2569) หน้าตาเท่าการ์ดเดิม ล้างค่าตั้งต้นของปุ่มออก
+   ตอนชี้ยกขึ้นตามการ์ดเดิม (.wrap ... :hover) · กดอยู่มีเส้นรอบสีเดียวกับแถบของการ์ด */
+button.stat { display: block; width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.stat > span { display: block; }
+.wrap button.stat[aria-pressed="true"] { outline: 2px solid var(--cb, var(--accent)); outline-offset: 2px; }
+button.stat:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* ตอนวงกตยังสร้างไม่เสร็จ การ์ดจาง กดไม่ได้ (พี่กันเสนอ 23 ต.ค. 2569 "การ์ดควรจะจาง ๆ กดไม่ได้ไหม") · จางเท่าปุ่มกดไม่ได้ทั้งเว็บ (.btn:disabled)
+   ใช้ aria-disabled ไม่ใช่ disabled ชี้แล้วยังขึ้นป๊อปบอกเหตุผล · การยกตอนชี้ของการ์ดทั้งเว็บคงเดิม */
+button.stat[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .stat .v { font-family: var(--f-mono); font-weight: 500; font-size: 22px; font-variant-numeric: tabular-nums; }
 @media (max-width: 420px) { .stat .v { font-size: 18px; } }
 .compare { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -404,6 +415,20 @@ table.games tbody tr:focus-visible { outline: 2px solid var(--accent); outline-o
 .lab { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
 .lab > .panel { grid-row: span 2; }
 .lab .note { background: var(--paper); border-radius: 8px; padding: 10px 12px; border-top: 0; }
+/* คำอธิบายวิธีสร้าง กระจายแบบไทย ข้อความเต็มบรรทัด ชิดทั้งซ้ายและขวา (พี่กันสั่ง 23 ต.ค. 2569 "การกระจายแบบไทยอ่ะ ทำแบบนี้สิวะ")
+   เดิมห่อทีละวลีห้ามขึ้นบรรทัดกลางวลี (Phr) บรรทัดสั้นยาวไม่เท่ากัน และวลียาวกว่ากล่องล้นจนโดนตัด (จอ 1366 × 768 ล้น 9 จาก 11 วิธี สูงสุด 101 จุด)
+   ในกล่องนี้ให้ขึ้นบรรทัดตามคำไทยได้ แล้วกระจายช่องไฟระหว่างตัวอักษร บรรทัดสุดท้ายชิดซ้ายตามปกติ */
+html:not([data-lang="en"]) .lab .note p .ph { white-space: normal; }
+html:not([data-lang="en"]) .lab .note p { text-align: justify; text-justify: inter-character; }
+/* คำอธิบายทุกจุดทุกหน้าก็กระจายแบบไทยเหมือนกัน (พี่กันถาม 23 ต.ค. 2569 "คำอธิบายทั้งหมด กระจายแบบไทยรึยัง")
+   คำใต้แถบเลื่อนกับใต้ช่องเลือก (.foot) · คำใต้หัวข้อเทียบทั้ง 11 วิธี (.compare .sub) · รายการในวิธีอ่านกราฟ วิธีสร้างด่าน (.about) · คำอธิบายในหน้าต่างวิธีเล่น (.keyhelp dd)
+   เฉพาะภาษาไทย ภาษาอังกฤษไม่กระจายตัวอักษร · บรรทัดที่จบด้วยการขึ้นบรรทัดตั้งใจ (br ตามประโยค) ยังชิดซ้ายเหมือนบรรทัดสุดท้าย */
+html:not([data-lang="en"]) :is(.foot, .compare .sub, .about p, .about li, .keyhelp dd) .ph { white-space: normal; }
+html:not([data-lang="en"]) :is(.foot, .compare .sub, .about p, .about li, .keyhelp dd) { text-align: justify; text-justify: inter-character; }
+/* ข้อความในวงเล็บห้ามหั่นกลาง (Phr รวมเป็นก้อน .pg) เช่น (ง่าย 6 กลาง 9 ยาก 14 โหด 20) · ลองแล้วเดิมหั่นเป็นสองบรรทัด */
+html:not([data-lang="en"]) :is(.foot, .compare .sub, .about p, .about li, .keyhelp dd, .lab .note p) .ph.pg { white-space: nowrap; }
+/* คำอธิบายที่ขึ้นบรรทัดทีละประโยคอยู่แล้ว (.sent ใต้แถบทางหลอกต้องยาวอย่างน้อย) ไม่กระจาย ไม่งั้นบรรทัดที่วงเล็บระดับลงไปบรรทัดใหม่ทั้งก้อนถูกยืดจนตัวห่าง (เจอ 23 ต.ค. 2569) */
+html:not([data-lang="en"]) .foot.sent { text-align: left; }
 .lab .note h2 { font-size: 16px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; margin-bottom: 6px; }
 .lab .note .nname { font-weight: 700; font-size: 21px; line-height: 1.25; background: linear-gradient(90deg, var(--accent), var(--sea2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lab .note .nthai { font-weight: 600; font-size: 15px; color: var(--ink); }
@@ -420,6 +445,27 @@ table.games tbody tr:focus-visible { outline: 2px solid var(--accent); outline-o
 /* กว้างเท่าตัวอักษร สีไล่ระดับจึงครบช่วงเท่ากับชื่อเว็บและหัวกล่องคำอธิบาย (เดิมยืดเต็มการ์ด เห็นแค่ต้นเฉด) */
 .sname b { align-self: flex-start; font-family: var(--f-display); font-weight: 700; font-size: 24px; line-height: 1.2; letter-spacing: .01em; background: linear-gradient(90deg, var(--accent), var(--sea2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ssize { flex: none; margin-top: 3px; font-family: var(--f-mono); font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-soft-2); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+/* ห้องทดลองจอเต็ม 1366 × 768 แผงซ้ายขวากว้างแค่ 313 ชื่อวิธี ชื่อเต็ม ป้ายการ์ด หัวข้อ 2 ตกสองบรรทัด
+   (พี่กันสั่ง 23 ต.ค. 2569 "ลองแก้ทั้งหมด ... ไม่ต้องลดอักษรนะ เน้นบีบช่องว่าง") · หน้าต่างปกติ 1366 × 577 แผงกว้าง 408 พอทุกตัว ไม่เข้าเงื่อนไขนี้
+   แผงแคบกว่า 400 บีบช่องไฟ · ชื่อวิธีห้ามหั่นกลางคำ ชื่อยาวเกินแถว (Recursive Division 264 มี 191) ป้ายขนาดลงบรรทัดใต้ชื่อแทน
+   มือถือไม่ใช้ (ไม่ประกาศกล่องวัดบนมือถือ) */
+html:not(.mz-mobile) .lab > .side { container: lside / inline-size; }
+html:not(.mz-mobile) .lab > .panel { container: lpanel / inline-size; }
+@container lside (max-width: 399px) {
+  /* แถวชื่อ ช่องไฟ 8 เป็น 4 ขอบในป้ายขนาด 10 เป็น 6 · Aldous-Broder กับ Hunt-and-Kill ต้องการ 190 ได้ 191 · ชื่อเต็ม DFS ต้องการ 180 */
+  .stitle { gap: 4px; flex-wrap: wrap; }
+  .stitle .sname { flex: 1 1 0; min-width: min-content; }
+  .sname b { white-space: nowrap; }
+  .ssize { padding-inline: 6px; }
+  /* การ์ดสถิติ ขอบในซ้ายขวา 12 เป็น 5 ช่องไฟ 8 เป็น 4 · ป้ายมีที่ 111 เป็น 126 (เส้นทางเฉลยยาว (ช่อง) ต้องการ 123) */
+  .side .stats { gap: 4px; }
+  .side .stat { padding-inline: 5px; }
+}
+@container lpanel (max-width: 399px) {
+  /* หัวข้อ ช่องไฟระหว่างเลขกับคำ 8 เป็น 5 · ปรับตามนิสัยของ Aldous-Broder ต้องการ 281 มี 279 */
+  .psech { gap: 5px; }
+}
+.psech .nw { white-space: nowrap; }
 .sbtns { display: flex; gap: 8px; }
 .sbtns .btn { flex: 1 1 0; padding: 9px 12px; }
 .boardbox { display: flex; align-items: center; justify-content: center; min-height: 0; }
@@ -468,6 +514,8 @@ table.games tbody tr:focus-visible { outline: 2px solid var(--accent); outline-o
 .side .about { background: var(--paper); border: 0; }
 .lab .chips { gap: 6px; }
 .lab .chip { flex: 1 1 auto; text-align: center; padding-inline: 10px; font-size: 13px; }
+/* ชื่อวิธีบนปุ่มตัวหนาขึ้น 500 เป็น 600 (พี่กันสั่ง 23 ต.ค. 2569 "ชื่อวิธี ตัวหนาหน่อย") · Roboto Mono โหลดไว้ถึง 600 ตัวอักษรกว้างเท่าเดิมทุกน้ำหนัก ปุ่มไม่ขยาย */
+.lab .chip { font-weight: 600; }
 
 /* ── หน้าประวัติ (จัดใหม่ 21 ต.ค. 2569 พี่กันสั่ง "หน้าประวัติไปออกแบบ UXUI ใหม่") ── */
 /* หัวข้อ คำอธิบาย และสวิตช์โครงจาง อยู่แถวเดียวกัน (พี่กันสั่ง "เอาทั้งหมดไปอยู่แถวเดียวกันกับคำว่าเกมที่เล่นจบ") */
@@ -493,6 +541,10 @@ td.num .mut { margin-left: 0; }
 .scpill.mid b { color: var(--accent); } .scpill.mid { --fill: linear-gradient(90deg, var(--accent), var(--grad2)); }
 .scpill.lo b { color: var(--pend-ink); } .scpill.lo { --fill: linear-gradient(90deg, var(--b2), var(--warm1)); }
 .lvpill { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 1px 10px; font-size: 12.5px; font-weight: 600; }
+/* ตารางประวัติจอคอม ป้ายระดับกว้างเท่ากันทุกแถว ขนาดตารางข้างหลังเรียงตรงกัน (พี่กันสั่ง 23 ต.ค. 2569 "เอาตัวเลขให้ตรงกันที")
+   กว้างเท่าป้ายที่ยาวสุด ไทย กลาง 47 จุด · อังกฤษ Medium กับ Brutal 61 จุด · มือถือจัดการ์ดเองไม่โดน */
+html:not(.mz-mobile) table.games td .lvpill { min-width: 3.8em; text-align: center; }
+html:not(.mz-mobile)[data-lang="en"] table.games td .lvpill { min-width: 4.9em; }
 .srcpill { display: inline-block; background: var(--paper); color: var(--muted); border-radius: 99px; padding: 1px 10px; font-size: 12.5px; }
 .srcpill.re { background: var(--pend-bg); color: var(--pend-ink); }
 .go { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-size: 13px; opacity: .55; transition: opacity .15s ease; }
@@ -614,9 +666,18 @@ table.games tbody tr:hover .go, table.games tbody tr:focus-visible .go { opacity
   /* ปุ่มลูกศรยืดเต็มที่ว่างของคอลัมน์ ไม่เหลือที่ว่างข้างล่าง (พี่กันทัก "ว่างไว้ทำไม แบบเดิมก็ดีอยู่แล้ว")
      จอสูงได้ปุ่มใหญ่ถึง 92 × 84 แบบเดิม จอเตี้ยหดลงเองแต่ไม่ต่ำกว่า 44 ไม่ต้องเลื่อนคอลัมน์ */
   /* สมมาตร ช่องห่างแนวตั้งเท่าแนวนอน 8 จุด (พี่กันถาม "สมมาตรรึยัง" เดิมแถวยืดสูงกว่าปุ่มที่ถูกจำกัด 110 ช่องห่างแนวตั้งเลยกว้างราว 40)
-     แถวสูงไม่เกิน 140 กว้างรวมไม่เกิน 420 ปุ่มเกือบจัตุรัส เต็มแถวพอดี ชุดปุ่มอยู่กลางแนวตั้งของที่ว่าง */
-  .playpage .pg-ctrl > .dpad { flex: 1 1 auto; min-height: 150px; grid-template-columns: repeat(3, minmax(60px, 1fr)); grid-template-rows: repeat(3, minmax(44px, 140px)); gap: 8px; align-content: center; }
+     เดิมแถวสูงไม่เกิน 140 กว้างรวมไม่เกิน 420 ปุ่มเกือบจัตุรัสเฉพาะจอที่คอลัมน์กว้าง · เปลี่ยนเป็นจัตุรัสจริงแล้ว 23 ต.ค. 2569 ดูข้างล่าง
+     ชุดปุ่มอยู่กลางแนวตั้งของที่ว่าง ที่ว่างเหนือกับใต้ชุดปุ่มเท่ากัน */
+  /* ปุ่มเป็นจัตุรัสทุกขนาดจอ (พี่กันสั่ง 23 ต.ค. 2569 "ปุ่มลูกศรให้เป็นจัตุรัส" เดิมกว้างตามคอลัมน์ สูงยืดถึง 140 แยกกัน
+     จอ 1366 × 768 คอลัมน์กว้าง 313 ปุ่มเลยเป็นแท่งตั้ง 99 × 140 กากบาทสูง 436 กว้าง 313)
+     ด้านปุ่ม --dc = ค่าน้อยสุดของ ① กว้างคอลัมน์ (ไม่เกิน 420) ② สูงที่เหลือหลังหักแถวปุ่มธง 44 แถววิธีเล่น 28 ช่องไฟ 10 สองช่อง เผื่อ 4 รวม 96
+     วัดจาก .pg-ctrl ที่เป็นกล่องวัดขนาด (แบบเดียวกับมือถือ app/mobile.css) · กรอบรับเมาส์ยังเต็มที่ว่างเหมือนเดิม ชุดปุ่มอยู่กลาง
+     ที่เว้นให้แถวล่าง --al-rest มาจาก GameView ที่วัดแผงขวา (แถวล่างซ้ายตรงกับขวา ข้างล่าง) ยังไม่วัดใช้ 96 */
+  .playpage .pg-ctrl:has(> .dpad) { container-type: size; }
+  .playpage .pg-ctrl > .dpad { --dc: max(44px, min(calc((min(100cqw, 420px) - 16px) / 3), calc((100cqh - var(--al-rest, 96px) - 16px) / 3))); flex: 1 1 auto; min-height: 150px; grid-template-columns: repeat(3, var(--dc)); grid-template-rows: repeat(3, var(--dc)); gap: 8px; align-content: center; justify-content: center; }
   .playpage .pg-ctrl > .dpad { width: 100%; max-width: 420px; margin-inline: auto; }
+  /* เหนือชุดปุ่มมีช่องไฟกริด 8 ใต้ชุดปุ่มมีช่องไฟคอลัมน์ 10 ที่ว่างเลยต่างกัน 2 จุด (วัด 23 ต.ค. 2569 เหนือ 97 ใต้ 99) ดึงกรอบลง 2 ให้เท่ากัน */
+  .playpage .pg-ctrl > .dpad { margin-bottom: -2px; }
   .playpage .dbtn svg { width: 44px; height: 44px; }
   .playpage .flagrow { max-width: none; }
   /* สามปุ่มข้อความบรรทัดเดียวเสมอ (พี่กันสั่ง "ทำให้มันบรรทัดเดียว") ตัวเล็กลงนิด ช่องไฟในปุ่มแคบลง */
@@ -624,6 +685,25 @@ table.games tbody tr:hover .go, table.games tbody tr:focus-visible .go { opacity
   .playpage .fbtn svg { width: 15px; height: 15px; }
   .playpage .fbtn .kc { font-size: 10px; padding: 2px 4px; }
   .playpage .fbtn .kc svg { width: 12px; height: 12px; }
+  /* คอลัมน์แคบ (จอ 1366 คอลัมน์ 313 ปุ่มละ 99) ไอคอนกับป้ายแป้นล้นขอบปุ่ม (พี่กันทัก 23 ต.ค. 2569 "ปุ่ม icon เกิน")
+     ใช้คำสั้นชุดเดียวกับมือถือ กลับธง พัก และ เล่น ตอนพักอยู่ · ช่องไฟในปุ่ม 4 · คำเต็มต้องการปุ่มกว้าง 119 คือแถวกว้าง 373 ขึ้นไป */
+  .playpage .flagrow { container: frow / inline-size; }
+  @container frow (max-width: 372px) {
+    .flagrow .fbtn .lfull, .flagrow .fbtn .pfull { display: none; }
+    .flagrow .fbtn .lshort[hidden], .flagrow .fbtn .pshort[hidden] { display: inline !important; }
+    .flagrow .fbtn { gap: 4px; padding-inline: 4px; }
+  }
+  /* แถวปุ่มด่านใหม่ ดูเฉลย พิมพ์ใบงาน แผงขวา 313 แถวกว้าง 283 ปุ่มพิมพ์ใบงานต้องการ 113 แต่ได้ 86 ไอคอนกับคำล้นข้างละ 4
+     แถวแคบให้ปุ่มกว้างตามคำของตัวเอง ช่องไฟในปุ่ม 6 ขอบใน 5 · ปุ่มด่านใหม่ยังได้ส่วนแบ่งที่ว่างมากกว่า (flex-grow 1.15 เดิม) */
+  /* แถวล่างคอลัมน์ซ้ายตรงกับแถวล่างแผงขวาทุกขนาดจอ (พี่กันสั่ง 23 ต.ค. 2569 "เอาให้ตรงกัน")
+     ปุ่มธงสูงเท่าปุ่มด่านใหม่ (เดิม 44 แผงขวา 38) ขอบในบนล่าง 6 เท่ากัน · แถววิธีเล่นสูงเท่าแถววิธีสร้างด่าน
+     ระยะระหว่างสองแถวกับระยะใต้แถววิธีเล่น GameView วัดจากแผงขวาแล้วส่งมาเป็น --al-* · ยังไม่วัดใช้ค่าเดิม */
+  .playpage .pg-ctrl > .flagrow .fbtn { min-height: var(--al-flag-h, 38px); padding-block: 6px; }
+  .playpage .pg-ctrl > .helprow { min-height: var(--al-help-h, 0px); margin-top: calc(var(--al-gap, 10px) - 10px); margin-bottom: var(--al-pb, 0px); }
+  .pg-set > .row { container: srow / inline-size; }
+  @container srow (max-width: 370px) {
+    .pg-set .row .btn { flex-basis: auto; padding-inline: 5px; gap: 6px; }
+  }
   .playpage .hint { text-align: left; font-size: 12px; }
   .playpage .pg-ctrl { gap: 10px; }
   /* ของในคอลัมน์ซ้ายห้ามหดจนข้อความล้นไปทับของข้างล่าง (พี่กันทัก "ทับ" ตรงข้อความจุดแดงใต้การ์ดผล) · ยืดหดได้เฉพาะปุ่มลูกศร */
@@ -1001,6 +1081,52 @@ button.bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px
 html[data-lang="en"]:not(.mz-tr) body { visibility: hidden; animation: mz-reveal 0s 1.2s forwards; }
 @keyframes mz-reveal { to { visibility: visible; } }
 
+/* ── ปุ่มขึ้นบนสุด ลงล่างสุด ของแผงที่เลื่อนในตัวเอง (components/ui/JumpButtons.tsx · สกิล web-craft ข้อ 6.21) ──
+   พี่กันสั่ง 23 ต.ค. 2569 "หน้าห้องทดลอง ที่ฝั่งซ้ายขวามันเลื่อนขึ้นลงได้ เราขอปุ่มขึ้นสุดลงสุดด้วย สร้างตามสกิลนะ"
+   กล่องครอบสูง 0 ติดขอบล่างของแผงด้วย sticky ไม่เพิ่มความสูงเนื้อหา (ลบช่องไฟของแผงออก) ไม่รับการกด · ปุ่มวางตำแหน่งตายตัว ขึ้นอยู่บน ลงอยู่ล่าง
+   ซ่อน = ทึบ 0 กดไม่ได้ · โผล่แต่หยุดเลื่อนเกิน 1.5 วินาที = ทึบ 30% ยังกดได้ · เพิ่งเลื่อนหรือเอาเมาส์ชี้ = ชัดเต็ม ชี้แล้วพื้นฟ้าอ่อนแบบปุ่มพื้นขาวทั้งเว็บ */
+.jumpwrap { position: sticky; bottom: 10px; z-index: 15; flex: none; height: 0; pointer-events: none; }
+.panel > .jumpwrap { margin-top: -16px; }
+.side > .jumpwrap { margin-top: -14px; }
+/* ทั้งหน้า (หน้าประวัติ) ลอยมุมล่างขวาจอ ห่างขอบ 16 จุด · แถบบอกผลทับมุมเมื่อไหร่ ตัวปุ่มยกเองผ่าน style bottom */
+.jumpwrap.page { position: fixed; right: 16px; bottom: 16px; width: 44px; }
+.jumpbtn { position: absolute; right: 0; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-hover); background-color: var(--surface); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 16px -6px rgba(10, 40, 50, .35); opacity: 0; pointer-events: none; transition: opacity .25s ease, background-color .15s ease, border-color .15s ease, color .15s ease; }
+.jumpbtn.up { bottom: 52px; }
+.jumpbtn.down { bottom: 0; }
+.jumpbtn[data-show="true"] { opacity: .3; pointer-events: auto; }
+.jumpbtn[data-show="true"][data-awake="true"] { opacity: 1; }
+.jumpbtn[data-show="true"]:hover { opacity: 1; background-color: var(--accent-soft); border-color: var(--accent); color: var(--accent-hover); }
+.jumpbtn[data-show="true"]:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .jumpbtn { transition: none; } }
+
+/* ── ภาษาอังกฤษไม่ล้นไม่ตกบรรทัด (รายการงาน 23 ต.ค. 2569 ข้อ 10 "ภาษาอังกฤษเพี้ยนเกือบหมด") ──
+   Roboto Mono กว้างตัวละ 0.6 เท่าของขนาดตัวอักษร คำอังกฤษจึงยาวกว่าคำไทยที่ Sarabun มาก
+   บีบช่องไฟระหว่างตัวอักษรทั้งเว็บเฉพาะตอนภาษาอังกฤษ (พี่กันเสนอ "roboto ที่ใช้ บีบช่องว่างเหลือครึ่งนึงทั้งเว็บ") ตัวหนังสือไม่เล็กลง
+   ตัวที่ตั้งช่องไฟเองไว้แล้ว (ชื่อเว็บ ปุ่มภาษา) คงของเดิม · คำแปลที่ยาวเกินย่อในพจนานุกรม lib/i18n-en.ts · โหมดไทยไม่โดนทุกข้อ */
+html[data-lang="en"] body { letter-spacing: -0.05em; }
+/* ปุ่ม ช่องกรอก ช่องเลือก เบราว์เซอร์ตั้ง letter-spacing: normal ไว้เอง ไม่รับช่องไฟจาก body ต้องสั่งให้รับ */
+html[data-lang="en"] :is(button, input, select, textarea) { letter-spacing: inherit; }
+/* วงเล็บค่าตามระดับใต้แถบทางหลอกของหน้าเล่นเกม ภาษาไทยห้ามหั่นกลางวงเล็บ (ph pg) แต่อังกฤษยาว 40 ตัว แผงแคบ 262 จุดล้น ให้ขึ้นบรรทัดตามคำได้ */
+html[data-lang="en"] .foot .ph.pg { white-space: normal; }
+/* คำใต้แถบทางหลอก ภาษาไทยประโยคละบรรทัด (foot sent) · อังกฤษให้ไหลต่อกันได้ จอ 1366 × 577 เหลือสองบรรทัดเท่าไทย แผงตั้งค่าไม่ต้องเลื่อน */
+html[data-lang="en"] .foot.sent br { display: none; }
+/* ปุ่มระดับ Easy Medium Hard Brutal แผงตั้งค่าแคบสุด 260 จุด (จอ 1440 × 900 · 1280 × 800) ต้องการ 288 · ช่องไฟในปุ่ม 6 เป็น 3 ขอบใน 4 เป็น 2 พอดี 260
+   ใช้เฉพาะตอนกล่องแคบกว่า 300 จอกว้างหน้าตาเดิม */
+html[data-lang="en"] .pg-set div:has(> .seg) { container: lvseg / inline-size; }
+@container lvseg (max-width: 300px) { html[data-lang="en"] .pg-set .seg button { gap: 2px; padding-inline: 2px; } }
+/* ปุ่มไฟฉายกับเสียง ที่สำหรับคำกว้าง 72 จุด "Flashlight" ต้องการ 77 · ช่องไฟระหว่างไอคอนกับคำ 10 เป็น 6 ขอบใน 12 เป็น 8 ได้ที่ 84 */
+html[data-lang="en"] .btn.tog { gap: 6px; padding-inline: 8px; }
+/* แถวปุ่มธงจอคอม คำสั้นอังกฤษยังยาวกว่าไทย (Pause กับ พัก) แถวแคบกว่า 300 ล้นขอบปุ่ม 2 ถึง 6 จุด · ช่องไฟในปุ่ม 4 เป็น 2 · ป้ายแป้น Space กว้าง 32 บีบขอบในกับช่องไฟตัวอักษร */
+/* หน้าดูย้อน การ์ดสามใบซ้ายบนกว้างใบละ 92 ป้าย "Wrong turns" ต้องการ 73 ที่มี 67 · ขอบในซ้ายขวา 10 เป็น 7 กับบีบช่องไฟป้ายอีกนิด */
+html[data-lang="en"] .rtop .hud > div { padding-inline: 7px; }
+html[data-lang="en"] .rtop .hud .k { letter-spacing: -0.1em; }
+/* การ์ดสถิติแบบการ์ดชนะ (หน้าดูย้อนแผงขวา การ์ดผลหน้าเล่นเกม) ป้ายห้ามตัดบรรทัด · จอ 1440 × 900 ที่ป้ายเหลือ 98 "Total steps" ต้องการ 103 */
+html[data-lang="en"] .wstats .k { letter-spacing: -0.08em; }
+@container frow (max-width: 300px) {
+  html[data-lang="en"] .flagrow .fbtn { gap: 2px; padding-inline: 3px; }
+  html[data-lang="en"] .flagrow .fbtn .kc { padding-inline: 1px; letter-spacing: -0.1em; }
+}
+
 /* ป้ายบันทึกเล็กข้างหัวข้อการ์ดชนะ แบบป้ายมุมบนขวาของเว็บ warfarin ทั้งมือถือและจอคอม (พี่กันสั่ง 22 ต.ค. 2569 "ให้เป็นเหมือนในเว็บ warfarin ที่มันจะขึ้นเล็กๆ
    เอาขึ้นข้างๆออกจากเขาวงกต" แล้ว "ไปปรับในเดสท็อปด้วย") · กำลังบันทึก วงหมุน · เข้าระบบแล้ว วงถูกเด้ง ค้าง 3 วินาทีแล้วหาย (GameView savedPill)
    ลอยทับมุมขวาของแถวหัวข้อ ไม่กินที่ ไม่ดันอะไร · การ์ดแคบกว่า 390 เหลือแค่วงกลม ไม่ทับหัวข้อ ชี้เมาส์แล้วบอกสถานะ · คำว่าบันทึกเกมเข้าระบบแล้วยังอยู่ท้ายการ์ดตลอด */
@@ -1028,6 +1154,9 @@ html[data-lang="en"]:not(.mz-tr) body { visibility: hidden; animation: mz-reveal
 .helpbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .helprow { flex: none; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .helprow .helpbtn { align-self: auto; }
+/* แถววิธีเล่นเป็นกล่องพื้นขาว สลับกับแถววิธีสร้างด่านที่เป็นกล่องพื้นฟ้าในแผงขาว (พี่กันสั่ง 23 ต.ค. 2569 "ไฮไลต์สี วิธีเล่นเป็นสีขาวให้ที มันจะได้ตรงข้ามกับวิธีสร้างด่านที่ไฮไลต์สีฟ้า")
+   มุมโค้ง 10 กับขอบในซ้ายขวา 12 เท่า .about ไม่มีเส้นขอบเหมือนกัน · ความสูงเท่ากันอยู่แล้วจากตัวจัดแถวล่าง (--al-help-h) */
+.helprow { background: var(--surface); border-radius: 10px; padding-inline: 12px; }
 /* วิธีเดินสั้น ๆ บรรทัดเดียว คอลัมน์แคบตัดท้ายด้วยจุดไข่ปลา เว้นบนล่างให้วรรณยุกต์ไม่โดนตัด */
 .helphint { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: 3px; font-size: 12px; color: var(--muted); }
 .helppop { max-width: 540px; }
